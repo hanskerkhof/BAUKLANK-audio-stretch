@@ -314,3 +314,36 @@ body {
   fill: currentcolor;
   opacity: 0.95;
 }
+
+/* ============================================================
+   Status badge state colors (subtle)
+============================================================ */
+
+#status-bar > div {
+  /* default */
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+/* OK (green-ish) */
+#status-bar > div[data-state="ok"] {
+  background: rgba(0, 120, 0, 0.35);
+  border-color: rgba(120, 255, 140, 0.35);
+}
+
+/* WARN (amber) */
+#status-bar > div[data-state="warn"] {
+  background: rgba(160, 110, 0, 0.35);
+  border-color: rgba(255, 210, 120, 0.35);
+}
+
+/* BAD (red-ish) */
+#status-bar > div[data-state="bad"] {
+  background: rgba(150, 0, 0, 0.35);
+  border-color: rgba(255, 120, 120, 0.35);
+}
+
+/* Neutral/idle */
+#status-bar > div[data-state="idle"] {
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(255,255,255,0.12);
+}

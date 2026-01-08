@@ -37,19 +37,48 @@ const enableScope = false;
 
     // Load version.json (best effort). Works when served over HTTP(S).
     // When running from file://, this may fail; WS server will also publish version.
-    (async () => {
+    void (async () => {
         try {
             const res = await fetch('./version.json', {cache: 'no-store'});
             if (!res.ok) return;
             const data = await res.json();
-            const el = document.querySelector('#server-version');
-            if (el && data && typeof data.version === 'string') {
-                el.textContent = `server: v${data.version}`;
+            if (data && typeof data.version === 'string') {
+                setServerVersion(data.version);
             }
         } catch {
             // ignore
         }
     })();
+
+//     (async () => {
+//         try {
+//             const res = await fetch('./version.json', {cache: 'no-store'});
+//             if (!res.ok) return;
+//             const data = await res.json();
+//             if (data && typeof data.version === 'string') {
+//                 setServerVersion(data.version);
+//             }
+//         } catch {
+//             // ignore
+//         }
+//     })();
+
+
+    // // Load version.json (best effort). Works when served over HTTP(S).
+    // // When running from file://, this may fail; WS server will also publish version.
+    // (async () => {
+    //     try {
+    //         const res = await fetch('./version.json', {cache: 'no-store'});
+    //         if (!res.ok) return;
+    //         const data = await res.json();
+    //         const el = document.querySelector('#server-version');
+    //         if (el && data && typeof data.version === 'string') {
+    //             el.textContent = `server: v${data.version}`;
+    //         }
+    //     } catch {
+    //         // ignore
+    //     }
+    // })();
 
     let stretch;
     let audioDuration = 1;
@@ -279,11 +308,24 @@ const enableScope = false;
                 let reconnectTimer = null;
                 let status = 'disconnected';
 
+                // new v2.14.0: machine status
                 function setStatus(next) {
                     status = next;
                     const el = document.querySelector('#ws-status');
                     if (el) el.textContent = `ws: ${next}`;
+
+                    // color state
+                    if (next === 'connected') setBadgeState('#ws-status', 'ok');
+                    else if (String(next).startsWith('reconnecting')) setBadgeState('#ws-status', 'warn');
+                    else setBadgeState('#ws-status', 'bad');
                 }
+
+
+                // function setStatus(next) {
+                //     status = next;
+                //     const el = document.querySelector('#ws-status');
+                //     if (el) el.textContent = `ws: ${next}`;
+                // }
 
                 function setControllerStatus(msg) {
                     const el = document.querySelector('#controller-status');
@@ -294,8 +336,10 @@ const enableScope = false;
                         const fw = msg.fw ?? '?';
                         const port = msg.port ?? '?';
                         el.textContent = `controller: connected · ${deviceId} · fw=${fw} · ${port}`;
+                        setBadgeState('#controller-status', 'ok');
                     } else {
                         el.textContent = 'controller: disconnected';
+                        setBadgeState('#controller-status', 'bad');
                     }
                 }
 
@@ -523,6 +567,16 @@ const enableScope = false;
 })();
 
 // ------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------
+
+function setBadgeState(selector, state) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.dataset.state = state; // "ok" | "warn" | "bad" | "idle"
+}
+
+// ------------------------------------------------------------
 // Server version UI (new)
 // ------------------------------------------------------------
 function setServerVersion(version) {
@@ -530,6 +584,7 @@ function setServerVersion(version) {
     if (!el) return;
     const v = (typeof version === 'string' && version.length) ? version : '0.0.0';
     el.textContent = `server: v${v}`;
+    setBadgeState('#server-version', 'idle');
 }
 
 // ------------------------------------------------------------
@@ -553,5 +608,6 @@ function setMachineStatus(msg) {
     // Example: "machine: ctrl-pi · 192.168.1.42 · Linux 6.1.0-rpi · aarch64"
     const parts = [`machine: ${hostname}`, ip !== '?' ? ip : null, platform || null, arch || null].filter(Boolean);
     el.textContent = parts.join(' · ');
+    setBadgeState('#machine-status', 'idle');
 }
 
