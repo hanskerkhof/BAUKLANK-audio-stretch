@@ -368,6 +368,16 @@ const enableScope = false;
                         return;
                     }
 
+                    if (msg.type === 'machine') {
+                        setMachineStatus(msg);
+                        return;
+                    }
+
+                    // if (msg.type === 'controller') {
+                    //     setControllerStatus(msg);
+                    //     return;
+                    // }
+
                     if (msg.type === 'set') {
                         applyIncomingSet(msg.key, msg.value);
                         return;
@@ -522,4 +532,26 @@ function setServerVersion(version) {
     el.textContent = `server: v${v}`;
 }
 
+// ------------------------------------------------------------
+// Machine status UI (new)
+// ------------------------------------------------------------
+function setMachineStatus(msg) {
+    const el = document.querySelector('#machine-status');
+    if (!el) return;
+
+    if (!msg || typeof msg !== 'object') {
+        el.textContent = 'machine: ?';
+        return;
+    }
+
+    const hostname = (typeof msg.hostname === 'string' && msg.hostname.length) ? msg.hostname : '?';
+    const ip = (typeof msg.ip === 'string' && msg.ip.length) ? msg.ip : '?';
+    const platform = (typeof msg.platform === 'string' && msg.platform.length) ? msg.platform : '';
+    const arch = (typeof msg.arch === 'string' && msg.arch.length) ? msg.arch : '';
+
+    // Keep it compact for the status bar.
+    // Example: "machine: ctrl-pi · 192.168.1.42 · Linux 6.1.0-rpi · aarch64"
+    const parts = [`machine: ${hostname}`, ip !== '?' ? ip : null, platform || null, arch || null].filter(Boolean);
+    el.textContent = parts.join(' · ');
+}
 

@@ -144,26 +144,56 @@ body {
   pointer-events: none; /* never blocks sliders */
 }
 
-/* All three badges share the same look */
 #status-bar > #controller-status,
 #status-bar > #server-version,
-#status-bar > #ws-status {
-  pointer-events: none; /* extra safety */
-  padding: 6px 10px;
-  border-radius: 4px;
+#status-bar > #ws-status,
+#status-bar > #machine-status {
+  pointer-events: none;
+  padding: 10px 12px;
+  border-radius: 6px;
 
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* bigger + more readable on 1024x600 */
+  font-size: 16px;
+  line-height: 1.25;
 
   background: #000;
   color: #fff;
-  opacity: 0.7;
+  opacity: 0.78;
 
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* allow wrapping instead of ellipsis */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+
+  /* break long tokens like hostnames / "controller: connected · ..." */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
+
+/*!* All four badges share the same look *!*/
+/*#status-bar > #controller-status,*/
+/*#status-bar > #server-version,*/
+/*#status-bar > #ws-status,*/
+/*#status-bar > #machine-status*/
+/*{*/
+/*  pointer-events: none; !* extra safety *!*/
+/*  padding: 6px 10px;*/
+/*  border-radius: 4px;*/
+
+/*  font-family: monospace;*/
+/*  font-size: 12px;*/
+/*  line-height: 1.2;*/
+
+/*  background: #000;*/
+/*  color: #fff;*/
+/*  opacity: 0.7;*/
+
+/*  white-space: nowrap;*/
+/*  overflow: hidden;*/
+/*  text-overflow: ellipsis;*/
+/*}*/
 
 /* Layout: controller left, the other two to the right */
 #controller-status {

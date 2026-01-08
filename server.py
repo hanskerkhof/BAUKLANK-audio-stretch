@@ -1,8 +1,10 @@
-# v2.9
 import asyncio
 import json
 import logging
 import time
+import socket
+import platform
+import getpass
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Set
@@ -33,7 +35,6 @@ TARGET_DEVICE_ID = None  # e.g. "ctrl-01"
 # =========================
 logging.basicConfig(
     level=logging.DEBUG,
-    # level=logging.WARNING,
     format="%(asctime)s.%(msecs)03d | %(levelname)-5s | %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -58,6 +59,88 @@ SERVER_STATE: dict = {
     "type": "server",
     "version": load_server_version(),
 }
+
+# =========================
+# Machine info (for status bar)
+# =========================
+def _get_primary_ipv4() -> str:
+    """Best-effort primary IPv4 used for outbound traffic."""
+    try:
+        # UDP connect doesn't send packets, but lets the OS choose a route/interface.
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            return str(ip)
+        finally:
+            s.close()
+    except Exception:
+        return ""
+
+
+def _get_all_ipv4() -> list[str]:
+    """Best-effort list of IPv4 addresses for this host (may include duplicates)."""
+    ips: list[str] = []
+    try:
+        hostname = socket.gethostname()
+        _name, _aliases, addrs = socket.gethostbyname_ex(hostname)
+        for ip in addrs:
+            if ip and ip not in ips:
+                ips.append(ip)
+    except Exception:
+        pass
+
+    primary = _get_primary_ipv4()
+    if primary and primary not in ips:
+        ips.insert(0, primary)
+
+    # Filter out obvious loopback if we have anything else
+    non_loopback = [ip for ip in ips if not ip.startswith("127.")]
+    return non_loopback if non_loopback else ips
+
+
+def build_machine_state() -> dict:
+    hostname = ""
+    try:
+        hostname = socket.gethostname()
+    except Exception:
+        hostname = ""
+
+    platform_label = ""
+    try:
+        platform_label = f"{platform.system()} {platform.release()}".strip()
+    except Exception:
+        platform_label = ""
+
+    machine = ""
+    try:
+        machine = platform.machine()
+    except Exception:
+        machine = ""
+
+    user = ""
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = ""
+
+    ips = _get_all_ipv4()
+    primary_ip = ips[0] if ips else ""
+
+    return {
+        "type": "machine",
+        "hostname": hostname,
+        "user": user,
+        "platform": platform_label,
+        "arch": machine,
+        "ip": primary_ip,
+        "ips": ips,
+        "python": platform.python_version(),
+    }
+
+
+MACHINE_STATE: dict = build_machine_state()
+
 
 
 # =========================
@@ -91,6 +174,23 @@ async def broadcast(message: dict):
         CLIENTS.discard(ws)
 
 
+async def machine_state_task():
+    """Periodically refresh machine IP info and broadcast if it changed."""
+    global MACHINE_STATE
+    last_payload = json.dumps(MACHINE_STATE, sort_keys=True)
+    while True:
+        try:
+            next_state = build_machine_state()
+            next_payload = json.dumps(next_state, sort_keys=True)
+            if next_payload != last_payload:
+                MACHINE_STATE = next_state
+                last_payload = next_payload
+                await broadcast(MACHINE_STATE)
+        except Exception:
+            pass
+        await asyncio.sleep(5.0)
+
+
 async def ws_handler(ws):
     client = f"{ws.remote_address}"
     client_id = f"{id(ws):x}"
@@ -100,6 +200,7 @@ async def ws_handler(ws):
     # Immediately inform this client about current server + controller status
     try:
         await ws.send(json.dumps(SERVER_STATE))
+        await ws.send(json.dumps(MACHINE_STATE))
     except Exception as e:
         log.debug(f"⚠️ Could not send initial server status to {client_id}: {e}")
 
@@ -334,11 +435,12 @@ async def main():
     async with websockets.serve(ws_handler, WS_HOST, WS_PORT):
         log.info("✅ WebSocket server started")
 
-        # Start serial task
+        # Start background tasks
         serial_task = asyncio.create_task(serial_reader_task())
+        machine_task = asyncio.create_task(machine_state_task())
 
         # Run forever
-        await serial_task
+        await asyncio.gather(serial_task, machine_task)
 
 
 if __name__ == "__main__":
@@ -346,4 +448,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
-
