@@ -137,8 +137,11 @@ else
   log "WARNING: No Chromium window found (skipping click)."
 fi
 
-echo "Waiting 10 seconds for page to load..."
-sleep 10
+#echo "Waiting 10 seconds for page to load..."
+#sleep 10
+# Wait shorter when booting from SSD drive
+echo "Waiting 3 seconds for page to load..."
+sleep 3
 
 log "Click play"
 xdotool mousemove --sync 30 30

@@ -17,7 +17,7 @@ Paste it into github settings -> SSH and GPG keys -> New SSH key
 ### Clone the repo (user must be 'pi')
 
     cd ~/Public
-    git clone git@github.com:hanskerkhof/signalsmith_stretch.git
+    git clone git@github.com:hanskerkhof/BAUKLANK-audio-stretch.git
 
 ### Install prerequisites (linux raspbian bookworm)
 
@@ -27,10 +27,13 @@ Paste it into github settings -> SSH and GPG keys -> New SSH key
     sudo npm i -g http-server
     sudo pip3 install --break-system-packages websockets
 
+chmod for the startup script to work:
+
+    sudo chmod +x /home/pi/Public/BAUKLANK-audio-stretch/launch_on_pi.sh
 
 RUN (as user 'pi'):
 
-    /home/pi/Public/signalsmith_stretch/launch_on_pi.sh
+    /home/pi/Public/BAUKLANK-audio-stretch/launch_on_pi.sh
 
 **NOTE:** This will run the stack manually, normally it is started with the systemd service. If the service is running you have to stop it first with the command: `sudo systemctl stop bauklank-kiosk.service`
 
@@ -45,19 +48,19 @@ RUN (as user 'pi'):
 
 
     [Unit]
-    Description=BAUKLANK Kiosk (Signalsmith Stretch demo)
+    Description=BAUKLANK Kiosk (audio stretch)
     After=network-online.target graphical.target
     Wants=network-online.target
     
     [Service]
     Type=simple
     User=pi
-    WorkingDirectory=/home/pi/Public/signalsmith_stretch
+    WorkingDirectory=/home/pi/Public/BAUKLANK-audio-stretch
     
     Environment=DISPLAY=:0
     Environment=XAUTHORITY=/home/pi/.Xauthority
     
-    ExecStart=/home/pi/Public/signalsmith_stretch/launch_on_pi.sh
+    ExecStart=/home/pi/Public/BAUKLANK-audio-stretch/launch_on_pi.sh
     
     Restart=on-failure
     RestartSec=2
