@@ -8,6 +8,7 @@ set -euo pipefail
 # 3) Chromium kiosk + click play
 #
 # All processes are killed when this script exits.
+#
 # ============================================================
 
 user_name="pi"
