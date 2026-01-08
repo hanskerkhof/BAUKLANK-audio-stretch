@@ -56,28 +56,24 @@ const enableScope = false;
 
     // HK Added
     let volumeGain = audioContext.createGain();
-// HK Added: Stereo panner for balance control (-1..+1)
+    // HK Added: Stereo panner for balance control (-1..+1)
     let panNode = audioContext.createStereoPanner();
     panNode.pan.value = 0;
 
     volumeGain.gain.value = 0.35;
 
     let controlValuesInitial = {
-        // HK Added
         volume: 0.35,
-        // HK Added: stereo balance (pan) -1..+1
         pan: 0,
         active: false,
-        // rate: 1,
         rate: 0.001,
         semitones: 0,
-        // tonalityHz: 8000,
         tonalityHz: 16000,
         formantSemitones: 0,
         formantCompensation: false,
         formantBaseHz: 200,
         loopStart: 1,
-        loopEnd: 1 // disabled (<= start), but this gets set when we load an audio file
+        loopEnd: 1
     };
     let controlValues = Object.assign({}, controlValuesInitial);
 
@@ -94,11 +90,7 @@ const enableScope = false;
     );
 
     let configValuesInitial = {
-        // blockMs: 120,
-        // blockMs: 300,
-        blockMs: 70, // bigger blocks = better quality, but slower and makes it sound like a synthesizer
-        // For BHS keep the blockMs small (30 to 100Ms is fine)
-        // overlap: 7,
+        blockMs: 70,
         overlap: 1.5,
         splitComputation: true
     };
@@ -400,13 +392,12 @@ const enableScope = false;
                     ws.onmessage = (event) => handleMessage(event.data);
 
                     ws.onerror = () => {
-                        // Don’t reconnect here — wait for onclose (prevents double-reconnect storms)
+                        // wait for onclose
                     };
 
                     ws.onclose = () => {
                         setStatus('disconnected');
                         setControllerStatus({status: 'disconnected'});
-                        // Make sure the guard works: drop reference so connect() can create a fresh one.
                         ws = null;
                         scheduleReconnect();
                     };
@@ -417,7 +408,6 @@ const enableScope = false;
 
             window.wsControlClient.connect();
         } else {
-            // If script runs again, do nothing (existing client keeps running).
             window.wsControlClient.connect();
         }
 
@@ -511,15 +501,3 @@ const enableScope = false;
     };
     playbackPosition.oninput = playbackPosition.onchange = updatePlaybackPosition;
 })();
-
-// ------------------------------------------------------------
-// Server version UI (new)
-// ------------------------------------------------------------
-function setServerVersion(version) {
-    const el = document.querySelector('#server-version');
-    if (!el) return;
-    const v = (typeof version === 'string' && version.length) ? version : '0.0.0';
-    el.textContent = `server: v${v}`;
-}
-
-

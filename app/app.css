@@ -35,35 +35,60 @@ body {
 }
 
 #controls {
-    grid-area: controls;
-    display: grid;
-    grid-template-columns: max-content 1fr max-content;
-    grid-auto-rows: max-content;
-    padding: 1rem;
-    /* Disabled HK */
-    /*align-content: space-evenly;*/
+  grid-area: controls;
+  display: grid;
+
+  /* was: max-content 1fr max-content */
+  grid-template-columns: max-content max-content 1fr max-content;
+
+  grid-auto-rows: max-content;
+  padding: 1rem;
 }
+
+/*#controls {*/
+/*    grid-area: controls;*/
+/*    display: grid;*/
+/*    grid-template-columns: max-content 1fr max-content;*/
+/*    grid-auto-rows: max-content;*/
+/*    padding: 1rem;*/
+/*    !* Disabled HK *!*/
+/*    !*align-content: space-evenly;*!*/
+/*}*/
 
 #controls label {
-    grid-column: 1;
-    text-align: right;
-    padding-right: 1ex;
+  grid-column: 1;
+  text-align: right;
+  padding-right: 1ex;
 }
 
-#controls input[type=range], #controls input[type=checkbox] {
-    grid-column: 2;
-    font: inherit;
-    flex-grow: 0.25;
+#controls .reset-btn {
+  grid-column: 2;
 }
 
-#controls input[type=range] {
-    flex-grow: 1;
+#controls input[type=range],
+#controls input[type=checkbox],
+#controls > div {
+  grid-column: 3;
 }
 
 #controls input[type=number] {
-    grid-column: 3;
-    font: inherit;
+  grid-column: 4;
 }
+
+/*#controls input[type=range], #controls input[type=checkbox] {*/
+/*    grid-column: 2;*/
+/*    font: inherit;*/
+/*    flex-grow: 0.25;*/
+/*}*/
+
+/*#controls input[type=range] {*/
+/*    flex-grow: 1;*/
+/*}*/
+
+/*#controls input[type=number] {*/
+/*    grid-column: 3;*/
+/*    font: inherit;*/
+/*}*/
 
 #scope {
     grid-area: scope;
@@ -149,4 +174,113 @@ body {
 #server-version,
 #ws-status {
   flex: 0 0 auto;     /* keep compact */
+}
+
+
+/* ============================================================
+   Touchscreen tuning (1024x600): big sliders + half-width controls
+   Paste at END of app.css
+============================================================ */
+
+/* 1) Keep the whole controls grid to half screen (512px) */
+#controls {
+  width: 512px;
+  max-width: 512px;
+  justify-self: start;   /* left half */
+  align-self: start;
+}
+
+/* Make the slider column actually shrink to the 512px container */
+#controls input[type="range"] {
+  width: 100%;
+}
+
+/* 2) Touch-friendly range sliders (bigger track + bigger thumb) */
+#controls input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2.4rem;      /* overall control height (gives finger room) */
+  margin: 0;           /* avoid extra layout jitter */
+  background: transparent;
+  touch-action: pan-y; /* improves drag on touchscreens */
+}
+
+/* WebKit track */
+#controls input[type="range"]::-webkit-slider-runnable-track {
+  height: 1.1rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  box-shadow:
+    rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,
+    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
+}
+
+/* WebKit thumb */
+#controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  background: currentcolor;     /* uses your diagram-* accent colors */
+  margin-top: calc((1.1rem - 2.2rem) / 2); /* center thumb on track */
+}
+
+/* Firefox track */
+#controls input[type="range"]::-moz-range-track {
+  height: 1.1rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Firefox thumb */
+#controls input[type="range"]::-moz-range-thumb {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  background: currentcolor;
+}
+
+/* Optional: make number inputs a bit easier to tap */
+#controls input[type="number"] {
+  min-width: 5.5rem;
+  height: 2.2rem;
+  font-size: 1.05em;
+}
+
+/* Reset button: same size as the slider thumb, with inline SVG */
+#controls .reset-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  margin: 0 0.35rem 0 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+
+  background: rgba(255, 255, 255, 0.22);
+  color: currentcolor;
+
+  box-shadow:
+    rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,
+    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
+
+  text-shadow: none;
+}
+
+#controls .reset-btn:active {
+  transform: translateY(1px);
+}
+
+#controls .reset-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: block;
+  fill: currentcolor;
+  opacity: 0.95;
 }
