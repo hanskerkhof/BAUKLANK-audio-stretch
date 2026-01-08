@@ -165,6 +165,11 @@ Web demo
 
 https://signalsmith-audio.co.uk/code/stretch/demo/
 
+Repo's:
+
+https://github.com/Signalsmith-Audio/signalsmith-stretch
+
+
 
 
 #### All Chromium command line switches

@@ -125,7 +125,7 @@ const enableScope = false;
     let configValuesInitial = {
         // blockMs: 120,
         // blockMs: 300,
-        blockMs: 70, // bigger blocks = better quality, but slower and makes it sound like a synthesizer
+        blockMs: 60, // bigger blocks = better quality, but slower and makes it sound like a synthesizer
         // For BHS keep the blockMs small (30 to 100Ms is fine)
         // overlap: 7,
         overlap: 1.5,
