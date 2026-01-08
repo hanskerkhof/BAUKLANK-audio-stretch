@@ -111,6 +111,32 @@ Serve the frontend from a terminal
 
 https://github.com/Signalsmith-Audio/pitch-time-example-code
 
+## Nice to know:
+
+### Set the executable bit on a file
+
+On your development machine (or anywhere with a clean repo):
+
+    git update-index --chmod=+x launch_on_pi.sh
+    git commit -m "Make launch_on_pi.sh executable"
+    git push
+
+From then on, the file will come out executable after every pull/checkout automatically.
+
+Then on the Pi:
+
+    git pull
+
+Check if Git already tracks it:
+
+    git ls-files -s launch_on_pi.sh
+
+If you see 100755 → executable is tracked.
+If you see 100644 → not executable.
+
+
+---
+
 
 Pitch shifter
 
