@@ -94,6 +94,17 @@ Status:
 
 ---
 
+## Development
+
+### Run on mac
+
+Run server.py either from pyCharm or from the command line:
+
+    python3 server.py
+
+Serve the frontend from a terminal
+
+    npx http-server app -p 8080 -c-1 -o
 
 https://github.com/Signalsmith-Audio/pitch-time-example-code
 

@@ -47,14 +47,17 @@
 
 </head>
 <body>
-<div id="ws-status">
-    ws: disconnected
+
+<div id="status-bar">
+  <div id="controller-status">controller: disconnected</div>
+  <div id="server-version">server: v…</div>
+  <div id="ws-status">ws: disconnected</div>
 </div>
 
 <button id="playstop" alt="toggle play">...</button>
 <input id="playback" type="range" value="0" min="0" max="1" step="0.001">
 <input id="upload-file" type="file" style="visibility: hidden" accept="audio/*">
-<button id="upload">upload v2.8</button>
+<button id="upload">upload</button>
 <div id="controls">
     <label>(WS) rate</label>
     <input type="range" min="0.01" max="4" step="0.01" data-key="rate" class="diagram-blue">
@@ -72,7 +75,7 @@
     </div>
     <input type="number" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
     <label>block (ms)</label>
-    <input type="range" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
+    <input type="range" min="30" max="300" step="1" data-key="blockMs" class="diagram-green">
     <input type="number" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
     <label>overlap</label>
     <input type="range" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">

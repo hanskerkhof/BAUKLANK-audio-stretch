@@ -34,6 +34,22 @@ const enableScope = false;
 
 (async () => {
     let audioContext = new AudioContext();
+    // Load version.json (best effort). Works when served over HTTP(S).
+    // When running from file://, this may fail; WS server will also publish version.
+    (async () => {
+        try {
+            const res = await fetch('./version.json', {cache: 'no-store'});
+            if (!res.ok) return;
+            const data = await res.json();
+            const el = document.querySelector('#server-version');
+            if (el && data && typeof data.version === 'string') {
+                el.textContent = `server: v${data.version}`;
+            }
+        } catch {
+            // ignore
+        }
+    })();
+
     let stretch;
     let audioDuration = 1;
 
@@ -53,7 +69,7 @@ const enableScope = false;
         pan: 0,
         active: false,
         // rate: 1,
-        rate: 0.12,
+        rate: 0.001,
         semitones: 0,
         // tonalityHz: 8000,
         tonalityHz: 16000,
@@ -79,8 +95,11 @@ const enableScope = false;
 
     let configValuesInitial = {
         // blockMs: 120,
-        blockMs: 300,
-        overlap: 7,
+        // blockMs: 300,
+        blockMs: 70, // bigger blocks = better quality, but slower and makes it sound like a synthesizer
+        // For BHS keep the blockMs small (30 to 100Ms is fine)
+        // overlap: 7,
+        overlap: 1.5,
         splitComputation: true
     };
     let configValues = Object.assign({}, configValuesInitial);
@@ -239,6 +258,21 @@ const enableScope = false;
                     if (el) el.textContent = `ws: ${next}`;
                 }
 
+                function setControllerStatus(msg) {
+                    const el = document.querySelector('#controller-status');
+                    if (!el) return;
+
+                    if (msg && msg.status === 'connected') {
+                        const deviceId = msg.deviceId ?? '?';
+                        const fw = msg.fw ?? '?';
+                        const port = msg.port ?? '?';
+                        el.textContent = `controller: connected · ${deviceId} · fw=${fw} · ${port}`;
+                    } else {
+                        el.textContent = 'controller: disconnected';
+                    }
+                }
+
+
                 function clearReconnectTimer() {
                     if (reconnectTimer) {
                         clearTimeout(reconnectTimer);
@@ -305,6 +339,12 @@ const enableScope = false;
                         return;
                     }
 
+
+                    if (msg.type === 'controller') {
+                        setControllerStatus(msg);
+                        return;
+                    }
+
                     // New protocol
                     if (msg.type === 'set') {
                         applyIncomingSet(msg.key, msg.value);
@@ -345,6 +385,7 @@ const enableScope = false;
 
                     ws.onclose = () => {
                         setStatus('disconnected');
+                        setControllerStatus({status: 'disconnected'});
                         // Make sure the guard works: drop reference so connect() can create a fresh one.
                         ws = null;
                         scheduleReconnect();
@@ -458,4 +499,14 @@ const enableScope = false;
         playbackHeld = false;
     };
     playbackPosition.oninput = playbackPosition.onchange = updatePlaybackPosition;
-})();
+})();// ------------------------------------------------------------
+                // Server version UI (new)
+                // ------------------------------------------------------------
+                function setServerVersion(version) {
+                    const el = document.querySelector('#server-version');
+                    if (!el) return;
+                    const v = (typeof version === 'string' && version.length) ? version : '0.0.0';
+                    el.textContent = `server: v${v}`;
+                }
+
+
