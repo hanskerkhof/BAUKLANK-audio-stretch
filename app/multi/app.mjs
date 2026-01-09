@@ -587,10 +587,10 @@ function updateControllerStatus(engine, msg) {
     // ------------------------------------------------------------
     // Default audio (auto-load for BOTH engines)
     // ------------------------------------------------------------
-    // Loads Associations1.mp3 (relative to this app folder) into A and B.
+    // Loads Associations2.mp3 (relative to this app folder) into A and B.
     // Note: AudioContext may still be suspended until a user gesture; loading/decoding is fine.
     async function loadDefaultAudioIntoAllEngines() {
-        const url = './Associations1.mp3';
+        const url = './Associations2.mp3';
         const res = await fetch(url, {cache: 'no-store'});
         if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
         const buf = await res.arrayBuffer();

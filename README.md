@@ -108,9 +108,6 @@ The app:
 
     npx http-server app/multi -p 8080 -c-1 -o
 
-or the python version:
-
-    python3 app/multi/server.py
 
 
 
