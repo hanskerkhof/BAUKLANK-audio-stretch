@@ -96,6 +96,24 @@ Status:
     systemctl status bauklank-kiosk.service
 
 
+### Manual start on Pi for debugging
+
+Run the following commands (each in a new terminal):
+
+The server:
+
+    python3 server-multi.py
+
+The app:
+
+    npx http-server app/multi -p 8080 -c-1 -o
+
+or the python version:
+
+    python3 app/multi/server.py
+
+
+
 ---
 
 ## Development

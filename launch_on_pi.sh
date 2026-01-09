@@ -4,7 +4,7 @@ set -euo pipefail
 # ============================================================
 # Kiosk stack launcher:
 # 1) Web server (Python http.server)
-# 2) WebSocket/serial bridge (python3 server.py)
+# 2) WebSocket/serial bridge (python3 server-multi.py)
 # 3) Chromium kiosk + click play
 #
 # All processes are killed when this script exits.
@@ -14,10 +14,10 @@ set -euo pipefail
 
 user_name="pi"
 user_home="/home/$user_name"
-url="http://127.0.0.1:8080/multi/"  # default to multi app
+url="http://127.0.0.1:8080/"  # default to ...
 
 # Web root for the static site
-web_root="app"
+web_root="app/multi"
 web_port="8080"
 
 export DISPLAY=:0
@@ -61,7 +61,7 @@ cleanup() {
 
   # Stop in reverse order (UI last started -> stop first)
   kill_process_group "$chrome_pid" "Chromium"
-  kill_process_group "$py_pid"     "server.py"
+  kill_process_group "$py_pid"     "server-multi.py"
   kill_process_group "$http_pid"   "python http.server"
 
   log "Cleanup done."
@@ -89,11 +89,11 @@ done
 # ------------------------------------------------------------
 # Start python websocket/serial bridge in background (own process group)
 # ------------------------------------------------------------
-log "Starting server.py"
-py_pid="$(setsid bash -lc "exec python3 server.py" >/dev/null 2>&1 & echo $!)"
-log "server.py pid/pgid: $py_pid"
+log "Starting server-multi.py"
+py_pid="$(setsid bash -lc "exec python3 server-multi.py" >/dev/null 2>&1 & echo $!)"
+log "server-multi.py pid/pgid: $py_pid"
 
-# Optional: small pause so server.py can bind the port
+# Optional: small pause so server-multi.py can bind the port
 sleep 0.5
 
 # ------------------------------------------------------------
