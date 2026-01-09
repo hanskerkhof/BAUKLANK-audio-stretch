@@ -8,37 +8,37 @@
 
 /* --- Reset / base -------------------------------------------------------- */
 :root {
-  --ui-gap: 10px;
-  --ui-pad: 10px;
-  --header-pad-y: 8px;
-  --header-pad-x: 10px;
-  --transport-pad-y: 8px;
-  --transport-pad-x: 10px;
+    --ui-gap: 10px;
+    --ui-pad: 10px;
+    --header-pad-y: 8px;
+    --header-pad-x: 10px;
+    --transport-pad-y: 8px;
+    --transport-pad-x: 10px;
 
-  --statusbar-h: 48px;
-  --panel-bg: rgba(0,0,0,0.08);
-  --panel-bg-strong: rgba(0,0,0,0.18);
+    --statusbar-h: 48px;
+    --panel-bg: rgba(0, 0, 0, 0.08);
+    --panel-bg-strong: rgba(0, 0, 0, 0.18);
 
-  --border: rgba(0,0,0,0.20);
-  --text: rgba(0,0,0,0.80);
-  --muted: rgba(0,0,0,0.55);
+    --border: rgba(0, 0, 0, 0.20);
+    --text: rgba(0, 0, 0, 0.80);
+    --muted: rgba(0, 0, 0, 0.55);
 }
 
 html, body {
-  height: 100%;
+    height: 100%;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden; /* Important: scroll inside channel panels, not the whole page */
-  color: var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Important: scroll inside channel panels, not the whole page */
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Some builds include dist.css; keep this minimal but robust. */
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 /* --- Two channel layout -------------------------------------------------- */
@@ -47,65 +47,66 @@ body {
   ensures the top starts at y=0 (no slack).
 */
 .multi-grid {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
 }
 
 /* If your HTML uses body as the grid container */
 body.multi,
 body[data-app="multi"] {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
 }
 
 /* Fallback: if index.html uses #channels or #main wrapper */
 #channels, #main, .channels, .main {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
 }
 
 /* --- Channel panel ------------------------------------------------------- */
 .channel {
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Allows internal scroll areas to work */
-  border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Allows internal scroll areas to work */
+    border-left: 1px solid var(--border);
+    width: 512px;
 }
 
 .channel:first-child {
-  border-left: none;
+    border-left: none;
 }
 
 /* Top header (CHANNEL A / CHANNEL B) */
 .channel-header {
-  margin: 0;             /* kills top slack */
-  padding: var(--header-pad-y) var(--header-pad-x);
-  background: var(--panel-bg-strong);
-  border-bottom: 1px solid var(--border);
+    margin: 0; /* kills top slack */
+    padding: var(--header-pad-y) var(--header-pad-x);
+    background: var(--panel-bg-strong);
+    border-bottom: 1px solid var(--border);
 }
 
 .channel-header h1,
 .channel-header h2,
 .channel-header .title,
 .channel-header .channel-title {
-  margin: 0;
-  padding: 0;
-  font-size: 18px;
-  letter-spacing: 0.02em;
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    letter-spacing: 0.02em;
 }
 
 /* Controller status line under the header */
 .channel-subheader,
 .controller-status,
 .status-line {
-  padding: 4px var(--header-pad-x);
-  background: var(--panel-bg-strong);
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 14px;
+    padding: 4px var(--header-pad-x);
+    background: var(--panel-bg-strong);
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
 }
 
 /* --- Transport row: play + slider + upload on ONE line ------------------- */
@@ -113,72 +114,72 @@ body[data-app="multi"] {
 .transport,
 .channel-transport,
 .player-row {
-  display: flex;
-  align-items: center;
-  gap: var(--ui-gap);
-  padding: var(--transport-pad-y) var(--transport-pad-x);
-  background: var(--panel-bg-strong);
-  border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: var(--ui-gap);
+    padding: var(--transport-pad-y) var(--transport-pad-x);
+    background: var(--panel-bg-strong);
+    border-bottom: 1px solid var(--border);
 }
 
 /* Buttons and slider in the transport row */
 .transport button,
 .channel-transport button,
 .player-row button {
-  height: 40px;
-  min-width: 64px;
+    height: 40px;
+    min-width: 64px;
 }
 
 .transport input[type="range"],
 .channel-transport input[type="range"],
 .player-row input[type="range"] {
-  flex: 1;
-  min-width: 120px;
+    flex: 1;
+    min-width: 120px;
 }
 
 /* If your HTML places these three elements directly (ids per engine) */
 #playstop-A, #playstop-B,
 #upload-A, #upload-B {
-  height: 40px;
-  min-width: 64px;
+    height: 40px;
+    min-width: 64px;
 }
 
 #playback-A, #playback-B {
-  flex: 1;
-  min-width: 120px;
+    flex: 1;
+    min-width: 120px;
 }
 
 /* If your upload button is a label styled as button */
 label.button,
 label.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  min-width: 64px;
-  cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    min-width: 64px;
+    cursor: pointer;
 }
 
 /* --- Controls area: scroll inside, so volume/pan always reachable -------- */
 .controls,
 .channel-controls {
-  flex: 1;
-  min-height: 0;            /* required for overflow scroll in flex column */
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--ui-pad);
-  background: rgba(255,255,255,0.35);
-  padding-bottom: calc(var(--ui-pad) + var(--statusbar-h)); /* keep status bar from covering last controls */
+    flex: 1;
+    min-height: 0; /* required for overflow scroll in flex column */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--ui-pad);
+    background: rgba(255, 255, 255, 0.35);
+    padding-bottom: calc(var(--ui-pad) + var(--statusbar-h)); /* keep status bar from covering last controls */
 }
 
 /* Your multi app uses #controls-A / #controls-B */
 #controls-A, #controls-B {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--ui-pad);
-  padding-bottom: calc(var(--ui-pad) + var(--statusbar-h));
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--ui-pad);
+    padding-bottom: calc(var(--ui-pad) + var(--statusbar-h));
 }
 
 /* Reduce vertical waste in control rows if they’re using grid */
@@ -188,20 +189,20 @@ label.btn {
 .channel-controls .control-row,
 #controls-A .row, #controls-B .row,
 #controls-A .control-row, #controls-B .control-row {
-  margin-bottom: 8px;
+    margin-bottom: 8px;
 }
 
 /* Inputs more compact but readable */
 input[type="number"],
 input[type="text"] {
-  height: 34px;
-  padding: 4px 8px;
+    height: 34px;
+    padding: 4px 8px;
 }
 
 /* Keep reset buttons small */
 .reset-btn {
-  width: 28px;
-  height: 28px;
+    width: 28px;
+    height: 28px;
 }
 
 /* --- Status bar at the bottom ------------------------------------------- */
@@ -210,18 +211,18 @@ input[type="text"] {
 #statusbar,
 .status-row,
 footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--statusbar-h);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  background: rgba(0,0,0,0.55);
-  color: rgba(255,255,255,0.92);
-  z-index: 999;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--statusbar-h);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.55);
+    color: rgba(255, 255, 255, 0.92);
+    z-index: 999;
 }
 
 /* Badge chips */
@@ -229,83 +230,83 @@ footer {
 #server-version,
 #machine-status,
 #ws-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.14);
-  white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    white-space: nowrap;
 }
 
 /* Optional: data-state coloring (you already use dataset.state in JS) */
 #ws-status[data-state="ok"],
 #server-version[data-state="ok"],
 #machine-status[data-state="ok"] {
-  background: rgba(0, 180, 90, 0.35);
+    background: rgba(0, 180, 90, 0.35);
 }
 
 #ws-status[data-state="warn"],
 #server-version[data-state="warn"],
 #machine-status[data-state="warn"] {
-  background: rgba(255, 165, 0, 0.35);
+    background: rgba(255, 165, 0, 0.35);
 }
 
 #ws-status[data-state="bad"],
 #server-version[data-state="bad"],
 #machine-status[data-state="bad"] {
-  background: rgba(220, 50, 50, 0.40);
+    background: rgba(220, 50, 50, 0.40);
 }
 
 /* --- Compact mode for 1024x600 ------------------------------------------ */
 @media (max-height: 600px) {
-  :root {
-    --ui-gap: 8px;
-    --ui-pad: 8px;
-    --header-pad-y: 4px;
-    --header-pad-x: 8px;
-    --transport-pad-y: 4px;
-    --transport-pad-x: 8px;
-    --statusbar-h: 44px;
-  }
+    :root {
+        --ui-gap: 8px;
+        --ui-pad: 8px;
+        --header-pad-y: 4px;
+        --header-pad-x: 8px;
+        --transport-pad-y: 4px;
+        --transport-pad-x: 8px;
+        --statusbar-h: 44px;
+    }
 
-  .channel-header h1,
-  .channel-header h2,
-  .channel-header .title,
-  .channel-header .channel-title {
-    font-size: 16px;
-  }
+    .channel-header h1,
+    .channel-header h2,
+    .channel-header .title,
+    .channel-header .channel-title {
+        font-size: 16px;
+    }
 
-  .channel-subheader,
-  .controller-status,
-  .status-line {
-    font-size: 13px;
-    padding: 3px 8px;
-  }
+    .channel-subheader,
+    .controller-status,
+    .status-line {
+        font-size: 13px;
+        padding: 3px 8px;
+    }
 
-  #playstop-A, #playstop-B,
-  #upload-A, #upload-B,
-  .transport button,
-  .channel-transport button,
-  .player-row button {
-    height: 34px;
-    min-width: 58px;
-  }
+    #playstop-A, #playstop-B,
+    #upload-A, #upload-B,
+    .transport button,
+    .channel-transport button,
+    .player-row button {
+        height: 34px;
+        min-width: 58px;
+    }
 
-  input[type="number"],
-  input[type="text"] {
-    height: 30px;
-  }
+    input[type="number"],
+    input[type="text"] {
+        height: 30px;
+    }
 
-  .reset-btn {
-    width: 26px;
-    height: 26px;
-  }
+    .reset-btn {
+        width: 26px;
+        height: 26px;
+    }
 }
 
 /* --- Optional: if your page had a top padding from dist.css -------------- */
 header, .header, .topbar {
-  margin: 0;
-  padding-top: 0;
+    margin: 0;
+    padding-top: 0;
 }
 
 /*#start-overlay {*/
