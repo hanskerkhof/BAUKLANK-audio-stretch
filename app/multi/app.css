@@ -1,427 +1,428 @@
-#start-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-}
 
-button {
-    justify-content: center;
-    align-items: center;
-    flex-grow: 1;
-    font: inherit;
-}
+/*#start-overlay {*/
+/*    position: fixed;*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    height: 100vh;*/
+/*    width: 100vw;*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    z-index: 100;*/
+/*}*/
 
-:root {
-    font-size: calc(min(12pt, 4.3vh));
-}
+/*button {*/
+/*    justify-content: center;*/
+/*    align-items: center;*/
+/*    flex-grow: 1;*/
+/*    font: inherit;*/
+/*}*/
 
-body {
-    margin: 0;
-    padding: 0;
-    position: fixed;
-    height: 100vh;
-    width: 100vw;
-    max-height: 100vh;
-    max-width: 100vw;
-    display: grid;
-    grid-template-areas: "playstop playback upload" "controls controls controls" "scope scope scope";
-    grid-template-columns: 3.5rem 1fr 6rem;
-    grid-template-rows: max-content 2fr 6rem;
-}
+/*:root {*/
+/*    font-size: calc(min(12pt, 4.3vh));*/
+/*}*/
 
-.controls {
-    grid-area: controls;
-    display: grid;
-
-    /* was: max-content 1fr max-content */
-    grid-template-columns: max-content max-content 1fr max-content;
-
-    grid-auto-rows: max-content;
-    padding: 1rem;
-}
+/*body {*/
+/*    margin: 0;*/
+/*    padding: 0;*/
+/*    position: fixed;*/
+/*    height: 100vh;*/
+/*    width: 100vw;*/
+/*    max-height: 100vh;*/
+/*    max-width: 100vw;*/
+/*    display: grid;*/
+/*    grid-template-areas: "playstop playback upload" "controls controls controls" "scope scope scope";*/
+/*    grid-template-columns: 3.5rem 1fr 6rem;*/
+/*    grid-template-rows: max-content 2fr 6rem;*/
+/*}*/
 
 /*.controls {*/
 /*    grid-area: controls;*/
 /*    display: grid;*/
-/*    grid-template-columns: max-content 1fr max-content;*/
+
+/*    !* was: max-content 1fr max-content *!*/
+/*    grid-template-columns: max-content max-content 1fr max-content;*/
+
 /*    grid-auto-rows: max-content;*/
 /*    padding: 1rem;*/
-/*    !* Disabled HK *!*/
-/*    !*align-content: space-evenly;*!*/
 /*}*/
 
-.controls label {
-    grid-column: 1;
-    text-align: right;
-    padding-right: 1ex;
-}
+/*!*.controls {*!*/
+/*!*    grid-area: controls;*!*/
+/*!*    display: grid;*!*/
+/*!*    grid-template-columns: max-content 1fr max-content;*!*/
+/*!*    grid-auto-rows: max-content;*!*/
+/*!*    padding: 1rem;*!*/
+/*!*    !* Disabled HK *!*!*/
+/*!*    !*align-content: space-evenly;*!*!*/
+/*!*}*!*/
 
-.controls .reset-btn {
-    grid-column: 2;
-}
+/*.controls label {*/
+/*    grid-column: 1;*/
+/*    text-align: right;*/
+/*    padding-right: 1ex;*/
+/*}*/
 
-.controls input[type=range],
-.controls input[type=checkbox],
-.controls > div {
-    grid-column: 3;
-}
-
-.controls input[type=number] {
-    grid-column: 4;
-}
-
-/*.controls input[type=range], .controls input[type=checkbox] {*/
+/*.controls .reset-btn {*/
 /*    grid-column: 2;*/
-/*    font: inherit;*/
-/*    flex-grow: 0.25;*/
 /*}*/
 
-/*.controls input[type=range] {*/
-/*    flex-grow: 1;*/
+/*.controls input[type=range],*/
+/*.controls input[type=checkbox],*/
+/*.controls > div {*/
+/*    grid-column: 3;*/
 /*}*/
 
 /*.controls input[type=number] {*/
-/*    grid-column: 3;*/
-/*    font: inherit;*/
+/*    grid-column: 4;*/
 /*}*/
 
-#scope {
-    grid-area: scope;
-    width: 100%;
-    height: 6rem;
-    max-height: 100%;
-    border: none;
-}
+/*!*.controls input[type=range], .controls input[type=checkbox] {*!*/
+/*!*    grid-column: 2;*!*/
+/*!*    font: inherit;*!*/
+/*!*    flex-grow: 0.25;*!*/
+/*!*}*!*/
 
-#playstop {
-    grid-area: playstop;
-}
+/*!*.controls input[type=range] {*!*/
+/*!*    flex-grow: 1;*!*/
+/*!*}*!*/
 
-#playback {
-    grid-area: playback;
-    height: 100%;
-    position: relative;
-    padding: 0;
-    margin: 0 1rex;
-    accent-color: currentcolor;
-}
+/*!*.controls input[type=number] {*!*/
+/*!*    grid-column: 3;*!*/
+/*!*    font: inherit;*!*/
+/*!*}*!*/
 
-#playback::before {
-    content: '';
-    background: #DDD;
-    box-shadow: rgba(0, 0, 0, 0.267) 0px -8px 3px -8px inset, rgba(255, 255, 255, 0.2) 0px 6px 2px -4px inset;
-    position: absolute;
-    left: -1rem;
-    right: -1rem;
-    height: 100%;
-    z-index: -1;
-}
+/*#scope {*/
+/*    grid-area: scope;*/
+/*    width: 100%;*/
+/*    height: 6rem;*/
+/*    max-height: 100%;*/
+/*    border: none;*/
+/*}*/
 
-#upload, #upload-file {
-    grid-area: upload;
-}
+/*#playstop {*/
+/*    grid-area: playstop;*/
+/*}*/
 
-/* ============================================================
-   Status bar (bottom) — affects ONLY status UI
-============================================================ */
+/*#playback {*/
+/*    grid-area: playback;*/
+/*    height: 100%;*/
+/*    position: relative;*/
+/*    padding: 0;*/
+/*    margin: 0 1rex;*/
+/*    accent-color: currentcolor;*/
+/*}*/
 
-#status-bar {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    z-index: 9999;
+/*#playback::before {*/
+/*    content: '';*/
+/*    background: #DDD;*/
+/*    box-shadow: rgba(0, 0, 0, 0.267) 0px -8px 3px -8px inset, rgba(255, 255, 255, 0.2) 0px 6px 2px -4px inset;*/
+/*    position: absolute;*/
+/*    left: -1rem;*/
+/*    right: -1rem;*/
+/*    height: 100%;*/
+/*    z-index: -1;*/
+/*}*/
 
-    display: flex;
-    gap: 10px;
-    align-items: center;
+/*#upload, #upload-file {*/
+/*    grid-area: upload;*/
+/*}*/
 
-    pointer-events: none; /* never blocks sliders */
-}
+/*!* ============================================================*/
+/*   Status bar (bottom) — affects ONLY status UI*/
+/*============================================================ *!*/
 
-#status-bar > #controller-status,
-#status-bar > #server-version,
-#status-bar > #ws-status,
-#status-bar > #machine-status {
-    pointer-events: none;
-    padding: 10px 12px;
-    border-radius: 6px;
+/*#status-bar {*/
+/*    position: fixed;*/
+/*    left: 12px;*/
+/*    right: 12px;*/
+/*    bottom: 12px;*/
+/*    z-index: 9999;*/
 
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+/*    display: flex;*/
+/*    gap: 10px;*/
+/*    align-items: center;*/
 
-    /* bigger + more readable on 1024x600 */
-    font-size: 16px;
-    line-height: 1.25;
+/*    pointer-events: none; !* never blocks sliders *!*/
+/*}*/
 
-    background: #000;
-    color: #fff;
-    opacity: 0.78;
-
-    /* allow wrapping instead of ellipsis */
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-
-    /* break long tokens like hostnames / "controller: connected · ..." */
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-/*!* All four badges share the same look *!*/
 /*#status-bar > #controller-status,*/
 /*#status-bar > #server-version,*/
 /*#status-bar > #ws-status,*/
-/*#status-bar > #machine-status*/
-/*{*/
-/*  pointer-events: none; !* extra safety *!*/
-/*  padding: 6px 10px;*/
-/*  border-radius: 4px;*/
+/*#status-bar > #machine-status {*/
+/*    pointer-events: none;*/
+/*    padding: 10px 12px;*/
+/*    border-radius: 6px;*/
 
-/*  font-family: monospace;*/
-/*  font-size: 12px;*/
-/*  line-height: 1.2;*/
+/*    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;*/
 
-/*  background: #000;*/
-/*  color: #fff;*/
-/*  opacity: 0.7;*/
+/*    !* bigger + more readable on 1024x600 *!*/
+/*    font-size: 16px;*/
+/*    line-height: 1.25;*/
 
-/*  white-space: nowrap;*/
-/*  overflow: hidden;*/
-/*  text-overflow: ellipsis;*/
+/*    background: #000;*/
+/*    color: #fff;*/
+/*    opacity: 0.78;*/
+
+/*    !* allow wrapping instead of ellipsis *!*/
+/*    white-space: normal;*/
+/*    overflow: visible;*/
+/*    text-overflow: clip;*/
+
+/*    !* break long tokens like hostnames / "controller: connected · ..." *!*/
+/*    overflow-wrap: anywhere;*/
+/*    word-break: break-word;*/
 /*}*/
 
-/* Layout: controller left, the other two to the right */
-#controller-status {
-    flex: 1 1 auto; /* takes remaining space */
-    min-width: 0; /* enables ellipsis in flex */
-}
+/*!*!* All four badges share the same look *!*!*/
+/*!*#status-bar > #controller-status,*!*/
+/*!*#status-bar > #server-version,*!*/
+/*!*#status-bar > #ws-status,*!*/
+/*!*#status-bar > #machine-status*!*/
+/*!*{*!*/
+/*!*  pointer-events: none; !* extra safety *!*!*/
+/*!*  padding: 6px 10px;*!*/
+/*!*  border-radius: 4px;*!*/
 
-#server-version,
-#ws-status {
-    flex: 0 0 auto; /* keep compact */
-}
+/*!*  font-family: monospace;*!*/
+/*!*  font-size: 12px;*!*/
+/*!*  line-height: 1.2;*!*/
 
+/*!*  background: #000;*!*/
+/*!*  color: #fff;*!*/
+/*!*  opacity: 0.7;*!*/
 
-/* ============================================================
-   Touchscreen tuning (1024x600): big sliders + half-width controls
-   Paste at END of app.css
-============================================================ */
+/*!*  white-space: nowrap;*!*/
+/*!*  overflow: hidden;*!*/
+/*!*  text-overflow: ellipsis;*!*/
+/*!*}*!*/
 
-/* 1) Keep the whole controls grid to half screen (512px) */
-.controls {
-    width: 512px;
-    max-width: 512px;
-    justify-self: start; /* left half */
-    align-self: start;
-    gap: .5rem;
-}
+/*!* Layout: controller left, the other two to the right *!*/
+/*#controller-status {*/
+/*    flex: 1 1 auto; !* takes remaining space *!*/
+/*    min-width: 0; !* enables ellipsis in flex *!*/
+/*}*/
 
-/* Make the slider column actually shrink to the 512px container */
-.controls input[type="range"] {
-    width: 100%;
-}
-
-/* 2) Touch-friendly range sliders (bigger track + bigger thumb) */
-.controls input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 2.4rem; /* overall control height (gives finger room) */
-    margin: 0; /* avoid extra layout jitter */
-    background: transparent;
-    touch-action: pan-y; /* improves drag on touchscreens */
-}
-
-/* WebKit track */
-.controls input[type="range"]::-webkit-slider-runnable-track {
-    height: 1.1rem;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.12);
-    box-shadow: rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,
-    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
-}
-
-/* WebKit thumb */
-.controls input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 999px;
-    border: 2px solid rgba(0, 0, 0, 0.25);
-    background: currentcolor; /* uses your diagram-* accent colors */
-    margin-top: calc((1.1rem - 2.2rem) / 2); /* center thumb on track */
-}
-
-/* Firefox track */
-.controls input[type="range"]::-moz-range-track {
-    height: 1.1rem;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.12);
-}
-
-/* Firefox thumb */
-.controls input[type="range"]::-moz-range-thumb {
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 999px;
-    border: 2px solid rgba(0, 0, 0, 0.25);
-    background: currentcolor;
-}
-
-/* Optional: make number inputs a bit easier to tap */
-.controls input[type="number"] {
-    min-width: 5.5rem;
-    height: 2.2rem;
-    font-size: 1.05em;
-}
-
-/* Reset button: same size as the slider thumb, with inline SVG */
-.controls .reset-btn {
-    width: 2.2rem;
-    height: 2.2rem;
-    padding: 0;
-    margin: 0 0.35rem 0 0;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 999px;
-    border: 2px solid rgba(0, 0, 0, 0.25);
-
-    background: rgba(255, 255, 255, 0.22);
-    color: currentcolor;
-
-    box-shadow: rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,
-    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
-
-    text-shadow: none;
-}
-
-.controls .reset-btn:active {
-    transform: translateY(1px);
-}
-
-.controls .reset-btn svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    display: block;
-    fill: currentcolor;
-    opacity: 0.95;
-}
-
-/* ============================================================
-   Status badge state colors (subtle)
-============================================================ */
-
-#status-bar > div {
-    /* default */
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-/* OK (green-ish) */
-#status-bar > div[data-state="ok"] {
-    background: rgba(0, 120, 0, 0.35);
-    border-color: rgba(120, 255, 140, 0.35);
-}
-
-/* WARN (amber) */
-#status-bar > div[data-state="warn"] {
-    background: rgba(160, 110, 0, 0.35);
-    border-color: rgba(255, 210, 120, 0.35);
-}
-
-/* BAD (red-ish) */
-#status-bar > div[data-state="bad"] {
-    background: rgba(150, 0, 0, 0.35);
-    border-color: rgba(255, 120, 120, 0.35);
-}
-
-/* Neutral/idle */
-#status-bar > div[data-state="idle"] {
-    background: rgba(0, 0, 0, 0.65);
-    border-color: rgba(255, 255, 255, 0.12);
-}
+/*#server-version,*/
+/*#ws-status {*/
+/*    flex: 0 0 auto; !* keep compact *!*/
+/*}*/
 
 
-/* ------------------------------------------------------------
-   MULTIPLE CHANNELS LAYOUT (A/B)
-   ------------------------------------------------------------ */
-#channels {
-    position: fixed;
-    top: 3.5rem; /* below status bar */
-    left: 0;
-    width: 100vw;
-    height: calc(100vh - 3.5rem);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-}
+/*!* ============================================================*/
+/*   Touchscreen tuning (1024x600): big sliders + half-width controls*/
+/*   Paste at END of app.css*/
+/*============================================================ *!*/
 
-.channel {
-    position: relative;
-    height: 100%;
-    border-left: 1px solid rgba(255,255,255,0.08);
-}
+/*!* 1) Keep the whole controls grid to half screen (512px) *!*/
+/*.controls {*/
+/*    width: 512px;*/
+/*    max-width: 512px;*/
+/*    justify-self: start; !* left half *!*/
+/*    align-self: start;*/
+/*    gap: .5rem;*/
+/*}*/
 
-.channel:first-child {
-    border-left: none;
-}
+/*!* Make the slider column actually shrink to the 512px container *!*/
+/*.controls input[type="range"] {*/
+/*    width: 100%;*/
+/*}*/
 
-.channel-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    padding: 0.75rem 0.75rem 0.25rem 0.75rem;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(6px);
-}
+/*!* 2) Touch-friendly range sliders (bigger track + bigger thumb) *!*/
+/*.controls input[type="range"] {*/
+/*    -webkit-appearance: none;*/
+/*    appearance: none;*/
+/*    height: 2.4rem; !* overall control height (gives finger room) *!*/
+/*    margin: 0; !* avoid extra layout jitter *!*/
+/*    background: transparent;*/
+/*    touch-action: pan-y; !* improves drag on touchscreens *!*/
+/*}*/
 
-.channel-title {
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    opacity: 0.9;
-}
+/*!* WebKit track *!*/
+/*.controls input[type="range"]::-webkit-slider-runnable-track {*/
+/*    height: 1.1rem;*/
+/*    border-radius: 999px;*/
+/*    background: rgba(0, 0, 0, 0.12);*/
+/*    box-shadow: rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,*/
+/*    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;*/
+/*}*/
 
-.channel-transport {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0.5rem;
-    align-items: center;
-}
+/*!* WebKit thumb *!*/
+/*.controls input[type="range"]::-webkit-slider-thumb {*/
+/*    -webkit-appearance: none;*/
+/*    width: 2.2rem;*/
+/*    height: 2.2rem;*/
+/*    border-radius: 999px;*/
+/*    border: 2px solid rgba(0, 0, 0, 0.25);*/
+/*    background: currentcolor; !* uses your diagram-* accent colors *!*/
+/*    margin-top: calc((1.1rem - 2.2rem) / 2); !* center thumb on track *!*/
+/*}*/
 
-.channel-transport input[type="range"] {
-    width: 100%;
-}
+/*!* Firefox track *!*/
+/*.controls input[type="range"]::-moz-range-track {*/
+/*    height: 1.1rem;*/
+/*    border-radius: 999px;*/
+/*    background: rgba(0, 0, 0, 0.12);*/
+/*}*/
 
-.channel .controls {
-    width: 100%;
-    padding: 0.75rem;
-    box-sizing: border-box;
-}
+/*!* Firefox thumb *!*/
+/*.controls input[type="range"]::-moz-range-thumb {*/
+/*    width: 2.2rem;*/
+/*    height: 2.2rem;*/
+/*    border-radius: 999px;*/
+/*    border: 2px solid rgba(0, 0, 0, 0.25);*/
+/*    background: currentcolor;*/
+/*}*/
 
-/* Reuse existing controls grid (the commented-out block in app.css was disabled),
-   but we need it for each channel panel now. */
-.channel .controls {
-    display: grid;
-    grid-template-columns: max-content .1fr max-content;
-    grid-auto-rows: max-content;
-    gap: 0.5rem 0.75rem;
-    align-content: start;
-}
+/*!* Optional: make number inputs a bit easier to tap *!*/
+/*.controls input[type="number"] {*/
+/*    min-width: 5.5rem;*/
+/*    height: 2.2rem;*/
+/*    font-size: 1.05em;*/
+/*}*/
 
-/* Status bits inside each channel */
-.channel-status {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    opacity: 0.9;
-    font-size: 0.9em;
-}
+/*!* Reset button: same size as the slider thumb, with inline SVG *!*/
+/*.controls .reset-btn {*/
+/*    width: 2.2rem;*/
+/*    height: 2.2rem;*/
+/*    padding: 0;*/
+/*    margin: 0 0.35rem 0 0;*/
+
+/*    display: inline-flex;*/
+/*    align-items: center;*/
+/*    justify-content: center;*/
+
+/*    border-radius: 999px;*/
+/*    border: 2px solid rgba(0, 0, 0, 0.25);*/
+
+/*    background: rgba(255, 255, 255, 0.22);*/
+/*    color: currentcolor;*/
+
+/*    box-shadow: rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,*/
+/*    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;*/
+
+/*    text-shadow: none;*/
+/*}*/
+
+/*.controls .reset-btn:active {*/
+/*    transform: translateY(1px);*/
+/*}*/
+
+/*.controls .reset-btn svg {*/
+/*    width: 1.25rem;*/
+/*    height: 1.25rem;*/
+/*    display: block;*/
+/*    fill: currentcolor;*/
+/*    opacity: 0.95;*/
+/*}*/
+
+/*!* ============================================================*/
+/*   Status badge state colors (subtle)*/
+/*============================================================ *!*/
+
+/*#status-bar > div {*/
+/*    !* default *!*/
+/*    border: 1px solid rgba(255, 255, 255, 0.12);*/
+/*}*/
+
+/*!* OK (green-ish) *!*/
+/*#status-bar > div[data-state="ok"] {*/
+/*    background: rgba(0, 120, 0, 0.35);*/
+/*    border-color: rgba(120, 255, 140, 0.35);*/
+/*}*/
+
+/*!* WARN (amber) *!*/
+/*#status-bar > div[data-state="warn"] {*/
+/*    background: rgba(160, 110, 0, 0.35);*/
+/*    border-color: rgba(255, 210, 120, 0.35);*/
+/*}*/
+
+/*!* BAD (red-ish) *!*/
+/*#status-bar > div[data-state="bad"] {*/
+/*    background: rgba(150, 0, 0, 0.35);*/
+/*    border-color: rgba(255, 120, 120, 0.35);*/
+/*}*/
+
+/*!* Neutral/idle *!*/
+/*#status-bar > div[data-state="idle"] {*/
+/*    background: rgba(0, 0, 0, 0.65);*/
+/*    border-color: rgba(255, 255, 255, 0.12);*/
+/*}*/
+
+
+/*!* ------------------------------------------------------------*/
+/*   MULTIPLE CHANNELS LAYOUT (A/B)*/
+/*   ------------------------------------------------------------ *!*/
+/*#channels {*/
+/*    position: fixed;*/
+/*    top: 3.5rem; !* below status bar *!*/
+/*    left: 0;*/
+/*    width: 100vw;*/
+/*    height: calc(100vh - 3.5rem);*/
+/*    display: grid;*/
+/*    grid-template-columns: 1fr 1fr;*/
+/*}*/
+
+/*.channel {*/
+/*    position: relative;*/
+/*    height: 100%;*/
+/*    border-left: 1px solid rgba(255,255,255,0.08);*/
+/*}*/
+
+/*.channel:first-child {*/
+/*    border-left: none;*/
+/*}*/
+
+/*.channel-header {*/
+/*    position: sticky;*/
+/*    top: 0;*/
+/*    z-index: 10;*/
+/*    display: grid;*/
+/*    grid-template-columns: 1fr;*/
+/*    gap: 0.5rem;*/
+/*    padding: 0.75rem 0.75rem 0.25rem 0.75rem;*/
+/*    background: rgba(0,0,0,0.75);*/
+/*    backdrop-filter: blur(6px);*/
+/*}*/
+
+/*.channel-title {*/
+/*    font-weight: 700;*/
+/*    letter-spacing: 0.05em;*/
+/*    opacity: 0.9;*/
+/*}*/
+
+/*.channel-transport {*/
+/*    display: grid;*/
+/*    grid-template-columns: auto 1fr auto;*/
+/*    gap: 0.5rem;*/
+/*    align-items: center;*/
+/*}*/
+
+/*.channel-transport input[type="range"] {*/
+/*    width: 100%;*/
+/*}*/
+
+/*.channel .controls {*/
+/*    width: 100%;*/
+/*    padding: 0.75rem;*/
+/*    box-sizing: border-box;*/
+/*}*/
+
+/*!* Reuse existing controls grid (the commented-out block in app.css was disabled),*/
+/*   but we need it for each channel panel now. *!*/
+/*.channel .controls {*/
+/*    display: grid;*/
+/*    grid-template-columns: max-content .1fr max-content;*/
+/*    grid-auto-rows: max-content;*/
+/*    gap: 0.5rem 0.75rem;*/
+/*    align-content: start;*/
+/*}*/
+
+/*!* Status bits inside each channel *!*/
+/*.channel-status {*/
+/*    display: flex;*/
+/*    gap: 0.75rem;*/
+/*    flex-wrap: wrap;*/
+/*    opacity: 0.9;*/
+/*    font-size: 0.9em;*/
+/*}*/
 
