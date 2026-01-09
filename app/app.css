@@ -35,14 +35,14 @@ body {
 }
 
 #controls {
-  grid-area: controls;
-  display: grid;
+    grid-area: controls;
+    display: grid;
 
-  /* was: max-content 1fr max-content */
-  grid-template-columns: max-content max-content 1fr max-content;
+    /* was: max-content 1fr max-content */
+    grid-template-columns: max-content max-content 1fr max-content;
 
-  grid-auto-rows: max-content;
-  padding: 1rem;
+    grid-auto-rows: max-content;
+    padding: 1rem;
 }
 
 /*#controls {*/
@@ -56,23 +56,23 @@ body {
 /*}*/
 
 #controls label {
-  grid-column: 1;
-  text-align: right;
-  padding-right: 1ex;
+    grid-column: 1;
+    text-align: right;
+    padding-right: 1ex;
 }
 
 #controls .reset-btn {
-  grid-column: 2;
+    grid-column: 2;
 }
 
 #controls input[type=range],
 #controls input[type=checkbox],
 #controls > div {
-  grid-column: 3;
+    grid-column: 3;
 }
 
 #controls input[type=number] {
-  grid-column: 4;
+    grid-column: 4;
 }
 
 /*#controls input[type=range], #controls input[type=checkbox] {*/
@@ -131,45 +131,45 @@ body {
 ============================================================ */
 
 #status-bar {
-  position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  z-index: 9999;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 9999;
 
-  display: flex;
-  gap: 10px;
-  align-items: center;
+    display: flex;
+    gap: 10px;
+    align-items: center;
 
-  pointer-events: none; /* never blocks sliders */
+    pointer-events: none; /* never blocks sliders */
 }
 
 #status-bar > #controller-status,
 #status-bar > #server-version,
 #status-bar > #ws-status,
 #status-bar > #machine-status {
-  pointer-events: none;
-  padding: 10px 12px;
-  border-radius: 6px;
+    pointer-events: none;
+    padding: 10px 12px;
+    border-radius: 6px;
 
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* bigger + more readable on 1024x600 */
-  font-size: 16px;
-  line-height: 1.25;
+    /* bigger + more readable on 1024x600 */
+    font-size: 16px;
+    line-height: 1.25;
 
-  background: #000;
-  color: #fff;
-  opacity: 0.78;
+    background: #000;
+    color: #fff;
+    opacity: 0.78;
 
-  /* allow wrapping instead of ellipsis */
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+    /* allow wrapping instead of ellipsis */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 
-  /* break long tokens like hostnames / "controller: connected · ..." */
-  overflow-wrap: anywhere;
-  word-break: break-word;
+    /* break long tokens like hostnames / "controller: connected · ..." */
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /*!* All four badges share the same look *!*/
@@ -197,13 +197,13 @@ body {
 
 /* Layout: controller left, the other two to the right */
 #controller-status {
-  flex: 1 1 auto;     /* takes remaining space */
-  min-width: 0;       /* enables ellipsis in flex */
+    flex: 1 1 auto; /* takes remaining space */
+    min-width: 0; /* enables ellipsis in flex */
 }
 
 #server-version,
 #ws-status {
-  flex: 0 0 auto;     /* keep compact */
+    flex: 0 0 auto; /* keep compact */
 }
 
 
@@ -214,105 +214,104 @@ body {
 
 /* 1) Keep the whole controls grid to half screen (512px) */
 #controls {
-  width: 512px;
-  max-width: 512px;
-  justify-self: start;   /* left half */
-  align-self: start;
+    width: 512px;
+    max-width: 512px;
+    justify-self: start; /* left half */
+    align-self: start;
+    gap: .5rem;
 }
 
 /* Make the slider column actually shrink to the 512px container */
 #controls input[type="range"] {
-  width: 100%;
+    width: 100%;
 }
 
 /* 2) Touch-friendly range sliders (bigger track + bigger thumb) */
 #controls input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 2.4rem;      /* overall control height (gives finger room) */
-  margin: 0;           /* avoid extra layout jitter */
-  background: transparent;
-  touch-action: pan-y; /* improves drag on touchscreens */
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2.4rem; /* overall control height (gives finger room) */
+    margin: 0; /* avoid extra layout jitter */
+    background: transparent;
+    touch-action: pan-y; /* improves drag on touchscreens */
 }
 
 /* WebKit track */
 #controls input[type="range"]::-webkit-slider-runnable-track {
-  height: 1.1rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-  box-shadow:
-    rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,
+    height: 1.1rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+    box-shadow: rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,
     rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
 }
 
 /* WebKit thumb */
 #controls input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 999px;
-  border: 2px solid rgba(0, 0, 0, 0.25);
-  background: currentcolor;     /* uses your diagram-* accent colors */
-  margin-top: calc((1.1rem - 2.2rem) / 2); /* center thumb on track */
+    -webkit-appearance: none;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    background: currentcolor; /* uses your diagram-* accent colors */
+    margin-top: calc((1.1rem - 2.2rem) / 2); /* center thumb on track */
 }
 
 /* Firefox track */
 #controls input[type="range"]::-moz-range-track {
-  height: 1.1rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
+    height: 1.1rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
 }
 
 /* Firefox thumb */
 #controls input[type="range"]::-moz-range-thumb {
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 999px;
-  border: 2px solid rgba(0, 0, 0, 0.25);
-  background: currentcolor;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    background: currentcolor;
 }
 
 /* Optional: make number inputs a bit easier to tap */
 #controls input[type="number"] {
-  min-width: 5.5rem;
-  height: 2.2rem;
-  font-size: 1.05em;
+    min-width: 5.5rem;
+    height: 2.2rem;
+    font-size: 1.05em;
 }
 
 /* Reset button: same size as the slider thumb, with inline SVG */
 #controls .reset-btn {
-  width: 2.2rem;
-  height: 2.2rem;
-  padding: 0;
-  margin: 0 0.35rem 0 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    margin: 0 0.35rem 0 0;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-  border-radius: 999px;
-  border: 2px solid rgba(0, 0, 0, 0.25);
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
 
-  background: rgba(255, 255, 255, 0.22);
-  color: currentcolor;
+    background: rgba(255, 255, 255, 0.22);
+    color: currentcolor;
 
-  box-shadow:
-    rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,
+    box-shadow: rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,
     rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
 
-  text-shadow: none;
+    text-shadow: none;
 }
 
 #controls .reset-btn:active {
-  transform: translateY(1px);
+    transform: translateY(1px);
 }
 
 #controls .reset-btn svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  display: block;
-  fill: currentcolor;
-  opacity: 0.95;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: block;
+    fill: currentcolor;
+    opacity: 0.95;
 }
 
 /* ============================================================
@@ -320,30 +319,30 @@ body {
 ============================================================ */
 
 #status-bar > div {
-  /* default */
-  border: 1px solid rgba(255,255,255,0.12);
+    /* default */
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* OK (green-ish) */
 #status-bar > div[data-state="ok"] {
-  background: rgba(0, 120, 0, 0.35);
-  border-color: rgba(120, 255, 140, 0.35);
+    background: rgba(0, 120, 0, 0.35);
+    border-color: rgba(120, 255, 140, 0.35);
 }
 
 /* WARN (amber) */
 #status-bar > div[data-state="warn"] {
-  background: rgba(160, 110, 0, 0.35);
-  border-color: rgba(255, 210, 120, 0.35);
+    background: rgba(160, 110, 0, 0.35);
+    border-color: rgba(255, 210, 120, 0.35);
 }
 
 /* BAD (red-ish) */
 #status-bar > div[data-state="bad"] {
-  background: rgba(150, 0, 0, 0.35);
-  border-color: rgba(255, 120, 120, 0.35);
+    background: rgba(150, 0, 0, 0.35);
+    border-color: rgba(255, 120, 120, 0.35);
 }
 
 /* Neutral/idle */
 #status-bar > div[data-state="idle"] {
-  background: rgba(0, 0, 0, 0.65);
-  border-color: rgba(255,255,255,0.12);
+    background: rgba(0, 0, 0, 0.65);
+    border-color: rgba(255, 255, 255, 0.12);
 }

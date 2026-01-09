@@ -3,12 +3,11 @@
 
 ### Add ssh key on rp
 
-    pi@pi4-desktop6:~ $
     ssh-keygen -t ed25519 -C "hans@netmatic.nl"
 
 #### add it to github
 
-    pi@pi4-desktop6:~ $ cat ~/.ssh/id_ed25519.pub 
+    cat ~/.ssh/id_ed25519.pub 
 
 Paste it into github settings -> SSH and GPG keys -> New SSH key
 
@@ -28,8 +27,10 @@ Paste it into github settings -> SSH and GPG keys -> New SSH key
     sudo pip3 install --break-system-packages websockets
 
 chmod for the startup script to work:
+**NOTE: This is not needed, check the Nice to know setion on how to chmod for a file in git**
 
     sudo chmod +x /home/pi/Public/BAUKLANK-audio-stretch/launch_on_pi.sh
+
 
 RUN (as user 'pi'):
 
