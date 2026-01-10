@@ -558,7 +558,7 @@ function updateControllerStatus(engine, msg) {
             if (!engine.stretch) return;
             const v = clamp(toFiniteNumber(engine.ui.playback.value, 0), 0, engine.audioDuration);
             engine.stretch.schedule({
-                active: true,
+                active: !!engine.controlValues.active,
                 input: v,
                 outputTime: audioContext.currentTime + 0.01
             });
