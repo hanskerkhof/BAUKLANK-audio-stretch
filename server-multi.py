@@ -61,8 +61,8 @@ APPEND_GIT_DIRTY_SUFFIX = True
 # "full"   -> log EVERY incoming serial line (very noisy)
 # "digest" -> log a compact summary every SERIAL_LOG_DIGEST_EVERY_SEC seconds per engine
 SERIAL_LOG_MODE = "digest"  # "full" | "digest"
-SERIAL_LOG_DIGEST_EVERY_SEC = 3.0
-SERIAL_LOG_MAX_KEYS_IN_DIGEST = 6
+SERIAL_LOG_DIGEST_EVERY_SEC = 5.0
+SERIAL_LOG_MAX_KEYS_IN_DIGEST = 10
 
 
 # ✅ Heartbeat (one-line "controllers alive" log)
