@@ -160,9 +160,9 @@ fi
 echo "Waiting 3 seconds for page to load..."
 sleep 3
 
-log "Click play"
-xdotool mousemove --sync 30 30
-xdotool click 1
+log "Click play skipped, app starts audio now"
+#xdotool mousemove --sync 30 30
+#xdotool click 1
 
 # ------------------------------------------------------------
 # Keep script alive until stopped (Ctrl+C)
