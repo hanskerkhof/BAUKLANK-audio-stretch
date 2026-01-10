@@ -107,6 +107,7 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
   export XAUTHORITY='$user_home/.Xauthority'
 
   setsid chromium-browser \
+    --kiosk \
     --no-default-browser-check \
     --user-data-dir=/home/pi/.config/chromium-kiosk \
     --no-first-run \
