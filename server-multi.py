@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+import subprocess
 import socket
 import platform
 import getpass
@@ -49,6 +50,13 @@ DEVICE_ID_TO_ENGINE: Dict[str, str] = {
 # If True, ONLY controllers whose deviceId is listed in DEVICE_ID_TO_ENGINE are accepted.
 STRICT_DEVICE_ID_ALLOWLIST = True
 
+# ✅ Version display options
+# If True, append git short hash to the version string sent to the browser.
+APPEND_GIT_HASH_TO_VERSION = True
+
+# If True, append '-dirty' when there are uncommitted git changes.
+APPEND_GIT_DIRTY_SUFFIX = True
+
 # =========================
 # Logging
 # =========================
@@ -64,14 +72,94 @@ log = logging.getLogger("ws-server-multi")
 # =========================
 # Version
 # =========================
-def load_server_version() -> str:
+def _run_git(args: list[str], repo_dir: Path, timeout_s: float = 0.4) -> Optional[str]:
     try:
-        version_file = Path(__file__).with_name("version.json")
-        data = json.loads(version_file.read_text(encoding="utf-8"))
-        v = data.get("version")
-        return str(v) if v else "0.0.0"
+        res = subprocess.run(
+            ["git", *args],
+            cwd=str(repo_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout_s,
+            check=True,
+        )
+        out = (res.stdout or "").strip()
+        return out if out else None
     except Exception:
-        return "0.0.0"
+        return None
+
+
+def _git_short_hash(repo_dir: Path) -> Optional[str]:
+    return _run_git(["rev-parse", "--short", "HEAD"], repo_dir)
+
+
+def _git_is_dirty(repo_dir: Path) -> Optional[bool]:
+    out = _run_git(["status", "--porcelain"], repo_dir)
+    if out is None:
+        return None
+    return len(out) > 0
+
+
+def _load_version_json(version_file: Path) -> Optional[str]:
+    try:
+        raw = version_file.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        log.warning(f"⚠️ version.json not found at {version_file} — using v0.0.0")
+        return None
+    except Exception as e:
+        log.warning(f"⚠️ Could not read version.json at {version_file} — using v0.0.0 ({e})")
+        return None
+
+    try:
+        data = json.loads(raw)
+    except Exception as e:
+        log.warning(f"⚠️ version.json is not valid JSON at {version_file} — using v0.0.0 ({e})")
+        return None
+
+    v = data.get("version")
+    v = str(v).strip() if v is not None else ""
+    if not v:
+        log.warning(f"⚠️ version.json missing/empty 'version' at {version_file} — using v0.0.0")
+        return None
+
+    return v
+
+
+def build_server_version() -> str:
+    """Build the version string sent to the browser.
+
+    Source of truth:
+      1) version.json next to this script, e.g. {"version":"1.2.3"}  (human / semver-ish)
+      2) fallback "0.0.0" (with warnings so it never fails silently)
+
+    Optional git metadata:
+      - If APPEND_GIT_HASH_TO_VERSION is True, append "+g<shortHash>"
+      - If APPEND_GIT_DIRTY_SUFFIX is True and repo is dirty, append "-dirty"
+
+    Examples:
+      - 0.3.0+g1a2b3c4
+      - 0.3.0+g1a2b3c4-dirty
+      - 0.0.0+g1a2b3c4   (when version.json missing)
+    """
+    repo_dir = Path(__file__).resolve().parent
+    version_file = repo_dir / "version.json"
+
+    base = _load_version_json(version_file) or "0.0.0"
+
+    if not APPEND_GIT_HASH_TO_VERSION:
+        return base
+
+    short_hash = _git_short_hash(repo_dir)
+    if not short_hash:
+        return base
+
+    dirty_suffix = ""
+    if APPEND_GIT_DIRTY_SUFFIX:
+        dirty = _git_is_dirty(repo_dir)
+        if dirty is True:
+            dirty_suffix = "-dirty"
+
+    return f"{base}+g{short_hash}{dirty_suffix}"
 
 
 # =========================
@@ -151,7 +239,7 @@ def build_machine_status() -> dict:
 
 SERVER_VERSION_MSG: dict = {
     "type": "serverVersion",
-    "version": load_server_version(),
+    "version": build_server_version(),
 }
 
 MACHINE_STATUS: dict = build_machine_status()
@@ -198,11 +286,20 @@ async def ws_handler(ws):
     CLIENTS.add(ws)
     log.info(f"🔗 WS client connected: {client} (id={client_id})")
 
+    # Send initial status burst to this client (helps the UI populate immediately)
+    # We log what we send at DEBUG level so field logs can confirm the handshake.
+
     try:
+        log.debug(f"⬆️ WS init -> {client_id}: {SERVER_VERSION_MSG}")
         await ws.send(json.dumps(SERVER_VERSION_MSG))
+
+        log.debug(f"⬆️ WS init -> {client_id}: {MACHINE_STATUS}")
         await ws.send(json.dumps(MACHINE_STATUS))
+
         for engine_id in ENGINE_SLOTS:
-            await ws.send(json.dumps(current_controller_status(engine_id)))
+            payload = current_controller_status(engine_id)
+            log.debug(f"⬆️ WS init -> {client_id}: {payload}")
+            await ws.send(json.dumps(payload))
     except Exception as e:
         log.debug(f"⚠️ Could not send initial status to {client_id}: {e}")
 
@@ -425,12 +522,12 @@ async def serial_manager_task():
     """
     while True:
         try:
-            ports = _list_candidate_ports()
-            log.debug(f"🔎 Serial scan: {ports}")
-
             # If we have free slots, probe ports not already connected
             free_slots = [e for e in ENGINE_SLOTS if e not in ENGINE_TO_CONTROLLER]
             if free_slots:
+                ports = _list_candidate_ports()
+                log.debug(f"🔎 Serial scan: {ports}")
+
                 for port in ports:
                     if port in PORT_TO_ENGINE:
                         continue
