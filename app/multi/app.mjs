@@ -280,7 +280,7 @@ function updateControllerStatus(engine, msg) {
         }
     }
 
-    function controlsChanged(engine, scheduleAhead) {
+    function controlsChanged(engine, scheduleAhead, opts = {}) {
         // Persist controls (selected ones)
         setLocalStorageIfChanged(engine.id, 'volume', engine.controlValues.volume, {decimals: 4});
         setLocalStorageIfChanged(engine.id, 'pan', engine.controlValues.pan, {decimals: 4});
@@ -335,11 +335,15 @@ function updateControllerStatus(engine, msg) {
         const formantCompensation = !!engine.controlValues.formantCompensation;
         const formantBaseHz = clamp(toFiniteNumber(engine.controlValues.formantBaseHz, 200), 20, 2000);
 
+        const seekInput = (opts && Number.isFinite(opts.input))
+            ? clamp(toFiniteNumber(opts.input, 0), 0, engine.audioDuration)
+            : null;
+
+
         const scheduleOffset = scheduleAhead ? 0.1 : 0.0;
         engine.stretch.schedule({
             // IMPORTANT: Signalsmith expects explicit active=true/false
-            active: true,                 // 🔴 THIS IS THE KEY
-            // active: !!engine.controlValues.active,
+            active: !!engine.controlValues.active,
             rate: rate,
             semitones,
             tonalityHz,
@@ -348,6 +352,7 @@ function updateControllerStatus(engine, msg) {
             formantBaseHz,
             loopStart,
             loopEnd,
+            ...(seekInput !== null ? {input: seekInput} : {}),
             // slight look-ahead reduces zipper noise on rapid WS updates
             outputTime: audioContext.currentTime + scheduleOffset
         });
@@ -554,14 +559,17 @@ function updateControllerStatus(engine, msg) {
         engine.ui.playback.addEventListener('pointerup', () => playbackHeld = false);
         engine.ui.playback.addEventListener('change', () => playbackHeld = false);
 
-        engine.ui.playback.oninput = () => {
+        engine.ui.playback.oninput = async () => {
             if (!engine.stretch) return;
+
+            // Seeking is a user gesture; also makes Chromium/RPi more reliable.
+            await audioContext.resume();
+
             const v = clamp(toFiniteNumber(engine.ui.playback.value, 0), 0, engine.audioDuration);
-            engine.stretch.schedule({
-                active: !!engine.controlValues.active,
-                input: v,
-                outputTime: audioContext.currentTime + 0.01
-            });
+
+            // Robust seek: schedule with the FULL current control state (rate/pitch/formants/loop/active)
+            // plus an explicit input position override.
+            controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
         };
 
         // keep playback slider updated
