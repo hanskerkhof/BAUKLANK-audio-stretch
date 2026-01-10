@@ -108,6 +108,8 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
 
   setsid chromium-browser \
     --kiosk \
+    --no-default-browser-check \
+    --auto-open-devtools-for-tabs \
     --user-data-dir=/home/pi/.config/chromium-kiosk \
     --no-first-run \
     --disable-infobars \
