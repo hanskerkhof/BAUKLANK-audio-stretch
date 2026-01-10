@@ -666,23 +666,3 @@ header, .header, .topbar {
     fill: currentcolor;
     opacity: 0.95;
 }
-
-
-.load-progress {
-    width: 100%;
-    height: 4px;
-    margin-top: 4px;
-    appearance: none;
-}
-
-.load-progress::-webkit-progress-bar {
-    background-color: #222;
-}
-
-.load-progress::-webkit-progress-value {
-    background-color: #ccc;
-}
-
-.load-progress[hidden] {
-    display: none;
-}

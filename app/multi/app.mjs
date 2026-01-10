@@ -8,7 +8,7 @@ let $$ = document.querySelectorAll.bind(document);
 // ------------------------------------------------------------
 
 const DEFAULT_AUDIO_BY_ENGINE = {
-    A: 'Associations1.mp3',
+    A: 'Associations2.mp3',
     B: 'Associations2.mp3',
 };
 
@@ -149,8 +149,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
             uploadFile: null,
             controlsRoot: null,
             controllerStatus: null,
-            filename: null,
-            progress: null,
+            filename: null
         },
 
         // ui state
@@ -225,27 +224,6 @@ function updateFilename(engine, name) {
     el.textContent = safe;
 }
 
-function showProgress(engine, percent = null) {
-    const bar = engine.ui.progress;
-    if (!bar) return;
-
-    bar.hidden = false;
-
-    if (percent === null) {
-        bar.removeAttribute('value'); // indeterminate
-    } else {
-        bar.value = Math.max(0, Math.min(100, percent));
-    }
-}
-
-function hideProgress(engine) {
-    const bar = engine.ui.progress;
-    if (!bar) return;
-
-    bar.value = 0;
-    bar.hidden = true;
-}
-
 // ------------------------------------------------------------
 // Main
 // ------------------------------------------------------------
@@ -263,33 +241,14 @@ function hideProgress(engine) {
     // ------------------------------------------------------------
     // File handling (per engine)
     // ------------------------------------------------------------
-
     function handleFile(engine, file) {
         return new Promise((pass, fail) => {
             const reader = new FileReader();
-
-            reader.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    updateFilenameProgress(engine, e.loaded, e.total);
-                }
-            };
-
             reader.onload = () => pass(handleArrayBuffer(engine, reader.result));
             reader.onerror = fail;
-
-            updateFilename(engine, 'loading…');
             reader.readAsArrayBuffer(file);
         });
     }
-
-    // function handleFile(engine, file) {
-    //     return new Promise((pass, fail) => {
-    //         const reader = new FileReader();
-    //         reader.onload = () => pass(handleArrayBuffer(engine, reader.result));
-    //         reader.onerror = fail;
-    //         reader.readAsArrayBuffer(file);
-    //     });
-    // }
 
     async function handleArrayBuffer(engine, arrayBuffer) {
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -535,7 +494,6 @@ function hideProgress(engine) {
         engine.ui.controlsRoot = $(`#controls-${engine.id}`);
         engine.ui.controllerStatus = $(`#controller-status-${engine.id}`);
         engine.ui.filename = $(`#filename-${engine.id}`);
-        engine.ui.progress = $(`#progress-${engine.id}`);
 
         // Initial filename paint (persisted state or placeholder)
         updateFilename(engine, engine.currentFileName || 'no audio loaded');
@@ -683,50 +641,6 @@ function hideProgress(engine) {
     // }
     //
 
-
-    function updateFilenameProgress(engine, loaded, total) {
-        const el = engine.ui.filename;
-        if (!el) return;
-
-        if (Number.isFinite(loaded) && Number.isFinite(total) && total > 0) {
-            const pct = Math.min(100, Math.round((loaded / total) * 100));
-            el.textContent = `loading… ${pct}%`;
-        } else {
-            el.textContent = 'loading…';
-        }
-    }
-
-    async function fetchWithProgress(url, onProgress) {
-        const res = await fetch(url, {cache: 'no-store'});
-        if (!res.ok) {
-            throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-        }
-
-        const reader = res.body.getReader();
-        const contentLength = Number(res.headers.get('Content-Length')) || null;
-
-        let received = 0;
-        const chunks = [];
-
-        while (true) {
-            const {done, value} = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            received += value.length;
-            if (onProgress) onProgress(received, contentLength);
-        }
-
-        const buffer = new Uint8Array(received);
-        let offset = 0;
-        for (const chunk of chunks) {
-            buffer.set(chunk, offset);
-            offset += chunk.length;
-        }
-
-        return buffer.buffer;
-    }
-
-
     // Best-effort: if the mp3 isn't present, the app still works (upload buttons).
     loadDefaultAudioIntoAllEngines().catch(err => {
         console.warn('[multi] default audio load failed:', err);
@@ -734,49 +648,22 @@ function hideProgress(engine) {
 
     async function loadDefaultAudioIntoAllEngines() {
         for (const engine of engines.values()) {
-            const url = getDefaultAudioUrl(engine.id);
-            const filename = url.split('/').pop();
+            const url = getDefaultAudioUrl(engine.id); // 'A' or 'B'
 
-            updateFilename(engine, 'loading…');
+            const res = await fetch(url, {cache: 'no-store'});
+            if (!res.ok) {
+                throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+            }
 
-            const arrayBuffer = await fetchWithProgress(
-                url,
-                (loaded, total) => {
-                    updateFilenameProgress(engine, loaded, total);
+            const buf = await res.arrayBuffer();
 
-                    if (Number.isFinite(total) && total > 0) {
-                        showProgress(engine, Math.round((loaded / total) * 100));
-                    } else {
-                        showProgress(engine, null); // indeterminate
-                    }
-                }
-            );
+            updateFilename(engine, url.split('/').pop());
 
-            hideProgress(engine);
-            updateFilename(engine, filename);
-
-            await handleArrayBuffer(engine, arrayBuffer.slice(0));
+            // decodeAudioData may "consume" the ArrayBuffer in some browsers,
+            // so clone per engine.
+            await handleArrayBuffer(engine, buf.slice(0));
         }
     }
-
-    // async function loadDefaultAudioIntoAllEngines() {
-    //     for (const engine of engines.values()) {
-    //         const url = getDefaultAudioUrl(engine.id); // 'A' or 'B'
-    //
-    //         const res = await fetch(url, {cache: 'no-store'});
-    //         if (!res.ok) {
-    //             throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-    //         }
-    //
-    //         const buf = await res.arrayBuffer();
-    //
-    //         updateFilename(engine, url.split('/').pop());
-    //
-    //         // decodeAudioData may "consume" the ArrayBuffer in some browsers,
-    //         // so clone per engine.
-    //         await handleArrayBuffer(engine, buf.slice(0));
-    //     }
-    // }
 
 // ------------------------------------------------------------
     // WebSocket hookup (single socket, messages must include engine="A"/"B")
