@@ -4,6 +4,23 @@ let $ = document.querySelector.bind(document);
 let $$ = document.querySelectorAll.bind(document);
 
 // ------------------------------------------------------------
+// Default audio configuration (per engine)
+// ------------------------------------------------------------
+
+const DEFAULT_AUDIO_BY_ENGINE = {
+    A: 'Associations1.mp3',
+    B: 'Associations2.mp3',
+};
+
+function getDefaultAudioUrl(engineId) {
+    const filename = DEFAULT_AUDIO_BY_ENGINE[engineId];
+    if (!filename) {
+        throw new Error(`No default audio configured for engine ${engineId}`);
+    }
+    return `./${filename}`;
+}
+
+// ------------------------------------------------------------
 // Small utilities (guards against NaN / non-finite values)
 // ------------------------------------------------------------
 function toFiniteNumber(value, fallback) {
@@ -132,7 +149,8 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
             uploadFile: null,
             controlsRoot: null,
             controllerStatus: null,
-            filename: null
+            filename: null,
+            progress: null,
         },
 
         // ui state
@@ -207,6 +225,27 @@ function updateFilename(engine, name) {
     el.textContent = safe;
 }
 
+function showProgress(engine, percent = null) {
+    const bar = engine.ui.progress;
+    if (!bar) return;
+
+    bar.hidden = false;
+
+    if (percent === null) {
+        bar.removeAttribute('value'); // indeterminate
+    } else {
+        bar.value = Math.max(0, Math.min(100, percent));
+    }
+}
+
+function hideProgress(engine) {
+    const bar = engine.ui.progress;
+    if (!bar) return;
+
+    bar.value = 0;
+    bar.hidden = true;
+}
+
 // ------------------------------------------------------------
 // Main
 // ------------------------------------------------------------
@@ -224,14 +263,33 @@ function updateFilename(engine, name) {
     // ------------------------------------------------------------
     // File handling (per engine)
     // ------------------------------------------------------------
+
     function handleFile(engine, file) {
         return new Promise((pass, fail) => {
             const reader = new FileReader();
+
+            reader.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    updateFilenameProgress(engine, e.loaded, e.total);
+                }
+            };
+
             reader.onload = () => pass(handleArrayBuffer(engine, reader.result));
             reader.onerror = fail;
+
+            updateFilename(engine, 'loading…');
             reader.readAsArrayBuffer(file);
         });
     }
+
+    // function handleFile(engine, file) {
+    //     return new Promise((pass, fail) => {
+    //         const reader = new FileReader();
+    //         reader.onload = () => pass(handleArrayBuffer(engine, reader.result));
+    //         reader.onerror = fail;
+    //         reader.readAsArrayBuffer(file);
+    //     });
+    // }
 
     async function handleArrayBuffer(engine, arrayBuffer) {
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -403,15 +461,15 @@ function updateFilename(engine, name) {
         // Controllers often send volume as 1..100 (percent). Internally we use 0..1.
         // Also accept a direct 0..1 float.
         if (key === 'volume') {
-        const n = toFiniteNumber(value, NaN);
-        if (!Number.isFinite(n)) return;
+            const n = toFiniteNumber(value, NaN);
+            if (!Number.isFinite(n)) return;
 
-        // Controller protocol: volume is always percent (0..100)
-        const v01 = clamp(n, 0, 100) / 100;
-        engine.controlValues.volume = v01;
-        controlsChanged(engine, /*scheduleAhead=*/true);
-        return;
-    }
+            // Controller protocol: volume is always percent (0..100)
+            const v01 = clamp(n, 0, 100) / 100;
+            engine.controlValues.volume = v01;
+            controlsChanged(engine, /*scheduleAhead=*/true);
+            return;
+        }
 
         // UI alias: volumePercent -> volume (0..1)
         if (key === 'volumePercent') {
@@ -477,6 +535,7 @@ function updateFilename(engine, name) {
         engine.ui.controlsRoot = $(`#controls-${engine.id}`);
         engine.ui.controllerStatus = $(`#controller-status-${engine.id}`);
         engine.ui.filename = $(`#filename-${engine.id}`);
+        engine.ui.progress = $(`#progress-${engine.id}`);
 
         // Initial filename paint (persisted state or placeholder)
         updateFilename(engine, engine.currentFileName || 'no audio loaded');
@@ -606,28 +665,118 @@ function updateFilename(engine, name) {
     for (const engine of engines.values()) wireEngineUi(engine);
 
 
-    // ------------------------------------------------------------
-    // Default audio (auto-load for BOTH engines)
-    // ------------------------------------------------------------
-    // Loads Associations2.mp3 (relative to this app folder) into A and B.
-    // Note: AudioContext may still be suspended until a user gesture; loading/decoding is fine.
-    async function loadDefaultAudioIntoAllEngines() {
-        const url = './Associations2.mp3';
-        const res = await fetch(url, {cache: 'no-store'});
-        if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-        const buf = await res.arrayBuffer();
+    // // ------------------------------------------------------------
+    // // Default audio (auto-load for BOTH engines)
+    // // ------------------------------------------------------------
+    // // Note: AudioContext may still be suspended until a user gesture; loading/decoding is fine.
+    // async function loadDefaultAudioIntoAllEngines() {
+    //     const url = getDefaultAudioUrl(engine.id); // 'A' or 'B'
+    //     const res = await fetch(url, {cache: 'no-store'});
+    //     if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+    //     const buf = await res.arrayBuffer();
+    //
+    //     // decodeAudioData may "consume" the ArrayBuffer in some browsers, so clone per engine.
+    //     for (const engine of engines.values()) {
+    //         updateFilename(engine, url.split('/').pop());
+    //         await handleArrayBuffer(engine, buf.slice(0));
+    //     }
+    // }
+    //
 
-        // decodeAudioData may "consume" the ArrayBuffer in some browsers, so clone per engine.
-        for (const engine of engines.values()) {
-            updateFilename(engine, url.split('/').pop());
-            await handleArrayBuffer(engine, buf.slice(0));
+
+    function updateFilenameProgress(engine, loaded, total) {
+        const el = engine.ui.filename;
+        if (!el) return;
+
+        if (Number.isFinite(loaded) && Number.isFinite(total) && total > 0) {
+            const pct = Math.min(100, Math.round((loaded / total) * 100));
+            el.textContent = `loading… ${pct}%`;
+        } else {
+            el.textContent = 'loading…';
         }
     }
+
+    async function fetchWithProgress(url, onProgress) {
+        const res = await fetch(url, {cache: 'no-store'});
+        if (!res.ok) {
+            throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+        }
+
+        const reader = res.body.getReader();
+        const contentLength = Number(res.headers.get('Content-Length')) || null;
+
+        let received = 0;
+        const chunks = [];
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+            if (onProgress) onProgress(received, contentLength);
+        }
+
+        const buffer = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+            buffer.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        return buffer.buffer;
+    }
+
 
     // Best-effort: if the mp3 isn't present, the app still works (upload buttons).
     loadDefaultAudioIntoAllEngines().catch(err => {
         console.warn('[multi] default audio load failed:', err);
     });
+
+    async function loadDefaultAudioIntoAllEngines() {
+        for (const engine of engines.values()) {
+            const url = getDefaultAudioUrl(engine.id);
+            const filename = url.split('/').pop();
+
+            updateFilename(engine, 'loading…');
+
+            const arrayBuffer = await fetchWithProgress(
+                url,
+                (loaded, total) => {
+                    updateFilenameProgress(engine, loaded, total);
+
+                    if (Number.isFinite(total) && total > 0) {
+                        showProgress(engine, Math.round((loaded / total) * 100));
+                    } else {
+                        showProgress(engine, null); // indeterminate
+                    }
+                }
+            );
+
+            hideProgress(engine);
+            updateFilename(engine, filename);
+
+            await handleArrayBuffer(engine, arrayBuffer.slice(0));
+        }
+    }
+
+    // async function loadDefaultAudioIntoAllEngines() {
+    //     for (const engine of engines.values()) {
+    //         const url = getDefaultAudioUrl(engine.id); // 'A' or 'B'
+    //
+    //         const res = await fetch(url, {cache: 'no-store'});
+    //         if (!res.ok) {
+    //             throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+    //         }
+    //
+    //         const buf = await res.arrayBuffer();
+    //
+    //         updateFilename(engine, url.split('/').pop());
+    //
+    //         // decodeAudioData may "consume" the ArrayBuffer in some browsers,
+    //         // so clone per engine.
+    //         await handleArrayBuffer(engine, buf.slice(0));
+    //     }
+    // }
 
 // ------------------------------------------------------------
     // WebSocket hookup (single socket, messages must include engine="A"/"B")

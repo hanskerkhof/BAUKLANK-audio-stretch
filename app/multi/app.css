@@ -667,105 +667,22 @@ header, .header, .topbar {
     opacity: 0.95;
 }
 
-/*!* ============================================================*/
-/*   Status badge state colors (subtle)*/
-/*============================================================ *!*/
 
-/*#status-bar > div {*/
-/*    !* default *!*/
-/*    border: 1px solid rgba(255, 255, 255, 0.12);*/
-/*}*/
+.load-progress {
+    width: 100%;
+    height: 4px;
+    margin-top: 4px;
+    appearance: none;
+}
 
-/*!* OK (green-ish) *!*/
-/*#status-bar > div[data-state="ok"] {*/
-/*    background: rgba(0, 120, 0, 0.35);*/
-/*    border-color: rgba(120, 255, 140, 0.35);*/
-/*}*/
+.load-progress::-webkit-progress-bar {
+    background-color: #222;
+}
 
-/*!* WARN (amber) *!*/
-/*#status-bar > div[data-state="warn"] {*/
-/*    background: rgba(160, 110, 0, 0.35);*/
-/*    border-color: rgba(255, 210, 120, 0.35);*/
-/*}*/
+.load-progress::-webkit-progress-value {
+    background-color: #ccc;
+}
 
-/*!* BAD (red-ish) *!*/
-/*#status-bar > div[data-state="bad"] {*/
-/*    background: rgba(150, 0, 0, 0.35);*/
-/*    border-color: rgba(255, 120, 120, 0.35);*/
-/*}*/
-
-/*!* Neutral/idle *!*/
-/*#status-bar > div[data-state="idle"] {*/
-/*    background: rgba(0, 0, 0, 0.65);*/
-/*    border-color: rgba(255, 255, 255, 0.12);*/
-/*}*/
-
-
-/*!* ------------------------------------------------------------*/
-/*   MULTIPLE CHANNELS LAYOUT (A/B)*/
-/*   ------------------------------------------------------------ *!*/
-/*#channels {*/
-/*    position: fixed;*/
-/*    top: 3.5rem; !* below status bar *!*/
-/*    left: 0;*/
-/*    width: 100vw;*/
-/*    height: calc(100vh - 3.5rem);*/
-/*    display: grid;*/
-/*    grid-template-columns: 1fr 1fr;*/
-/*}*/
-
-/*.channel {*/
-/*    position: relative;*/
-/*    height: 100%;*/
-/*    border-left: 1px solid rgba(255,255,255,0.08);*/
-/*}*/
-
-/*.channel:first-child {*/
-/*    border-left: none;*/
-/*}*/
-
-/*.channel-header {*/
-/*    position: sticky;*/
-/*    top: 0;*/
-/*    z-index: 10;*/
-/*    display: grid;*/
-/*    grid-template-columns: 1fr;*/
-/*    gap: 0.5rem;*/
-/*    padding: 0.75rem 0.75rem 0.25rem 0.75rem;*/
-/*    background: rgba(0,0,0,0.75);*/
-/*    backdrop-filter: blur(6px);*/
-/*}*/
-
-/*.channel-title {*/
-/*    font-weight: 700;*/
-/*    letter-spacing: 0.05em;*/
-/*    opacity: 0.9;*/
-/*}*/
-
-/*.channel-transport {*/
-/*    display: grid;*/
-/*    grid-template-columns: auto 1fr auto;*/
-/*    gap: 0.5rem;*/
-/*    align-items: center;*/
-/*}*/
-
-/*.channel-transport input[type="range"] {*/
-/*    width: 100%;*/
-/*}*/
-
-/*.channel .controls {*/
-/*    width: 100%;*/
-/*    padding: 0.75rem;*/
-/*    box-sizing: border-box;*/
-/*}*/
-
-/*!* Reuse existing controls grid (the commented-out block in app.css was disabled),*/
-/*   but we need it for each channel panel now. *!*/
-/*.channel .controls {*/
-/*    display: grid;*/
-/*    grid-template-columns: max-content .1fr max-content;*/
-/*    grid-auto-rows: max-content;*/
-/*    gap: 0.5rem 0.75rem;*/
-/*    align-content: start;*/
-/*}*/
-
+.load-progress[hidden] {
+    display: none;
+}

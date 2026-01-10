@@ -40,10 +40,10 @@ ENGINE_SLOTS = ["A", "B"]
 # ✅ Stable mapping: controller deviceId -> engine slot
 # This lets your ESP8266 controller firmware stay generic.
 DEVICE_ID_TO_ENGINE: Dict[str, str] = {
-    "BHS_CNTRL_1": "A",
-    "BHS_CNTRL_2": "B",
-    "BHS_CNTRL_3": "A",
-    "BHS_CNTRL_4": "B",
+    "BKTP_CTL_01": "A",
+    "BKTP_CTL_02": "B",
+    "BKTP_CTL_03": "A",
+    "BKTP_CTL_04": "B",
 }
 
 # ✅ Strict allowlist:
@@ -57,6 +57,16 @@ APPEND_GIT_HASH_TO_VERSION = True
 # If True, append '-dirty' when there are uncommitted git changes.
 APPEND_GIT_DIRTY_SUFFIX = True
 
+# ✅ Serial log verbosity options
+# "full"   -> log EVERY incoming serial line (very noisy)
+# "digest" -> log a compact summary every SERIAL_LOG_DIGEST_EVERY_SEC seconds per engine
+SERIAL_LOG_MODE = "digest"  # "full" | "digest"
+SERIAL_LOG_DIGEST_EVERY_SEC = 3.0
+SERIAL_LOG_MAX_KEYS_IN_DIGEST = 6
+
+
+# ✅ Heartbeat (one-line "controllers alive" log)
+HEARTBEAT_INTERVAL_SEC = 60.0
 # =========================
 # Logging
 # =========================
@@ -280,6 +290,30 @@ async def machine_status_task():
         await asyncio.sleep(5.0)
 
 
+
+async def controller_heartbeat_task():
+    """
+    One-line heartbeat so field logs show the system is alive without spamming.
+    Logs connected controllers (engine slot -> deviceId/port/fw) every HEARTBEAT_INTERVAL_SEC.
+    """
+    while True:
+        try:
+            parts = []
+            for engine_id in ENGINE_SLOTS:
+                info = ENGINE_TO_CONTROLLER.get(engine_id)
+                if info:
+                    port_name = Path(info.port).name
+                    parts.append(f"{engine_id}=✅({info.device_id}@{port_name} fw={info.fw})")
+                else:
+                    parts.append(f"{engine_id}=—")
+
+            log.info("💓 Controllers alive: " + " ".join(parts))
+        except Exception as e:
+            log.debug(f"⚠️ controller_heartbeat_task loop error: {e}")
+
+        await asyncio.sleep(HEARTBEAT_INTERVAL_SEC)
+
+
 async def ws_handler(ws):
     client = f"{ws.remote_address}"
     client_id = f"{id(ws):x}"
@@ -463,6 +497,10 @@ async def serial_port_task(engine_id: str, info: ControllerInfo):
     """
     Open a controller port and forward incoming {"type":"set",...} to WS,
     tagging with engine="A"/"B".
+
+    Logging:
+      - SERIAL_LOG_MODE="full"   -> log every incoming serial line (current behavior)
+      - SERIAL_LOG_MODE="digest" -> log a compact summary every SERIAL_LOG_DIGEST_EVERY_SEC seconds
     """
     port = info.port
     try:
@@ -478,31 +516,96 @@ async def serial_port_task(engine_id: str, info: ControllerInfo):
 
     await broadcast(current_controller_status(engine_id))
 
+    # Digest accumulators (per engine)
+    digest_started = time.time()
+    last_digest = time.time()
+    line_count = 0
+    json_count = 0
+    set_count = 0
+    set_key_counts: Dict[str, int] = {}
+    last_set_values: Dict[str, object] = {}
+
+    def _emit_digest(force: bool = False) -> None:
+        nonlocal last_digest, line_count, json_count, set_count, set_key_counts, last_set_values, digest_started
+        if SERIAL_LOG_MODE != "digest":
+            return
+
+        now = time.time()
+        if not force and (now - last_digest) < SERIAL_LOG_DIGEST_EVERY_SEC:
+            return
+
+        if line_count <= 0:
+            last_digest = now
+            return
+
+        # Build key summary
+        keys_sorted = sorted(set_key_counts.items(), key=lambda kv: kv[1], reverse=True)
+        keys_sorted = keys_sorted[: max(1, SERIAL_LOG_MAX_KEYS_IN_DIGEST)]
+        parts = []
+        for k, n in keys_sorted:
+            last_val = last_set_values.get(k, None)
+            parts.append(f"{k}×{n} last={last_val}")
+
+        age = now - digest_started
+        key_part = " · " + " | ".join(parts) if parts else ""
+        log.debug(
+            f"📟 SERIAL {engine_id} {port}: {line_count} lines ({json_count} json, {set_count} set) in {age:.1f}s{key_part}"
+        )
+
+        # Reset counters for next window
+        last_digest = now
+        digest_started = now
+        line_count = 0
+        json_count = 0
+        set_count = 0
+        set_key_counts = {}
+        last_set_values = {}
+
     try:
         while True:
             raw = await asyncio.to_thread(ser.readline)
             if not raw:
+                # Periodically flush digest even if there's a short lull.
+                _emit_digest(force=False)
                 continue
 
             text = raw.decode("utf-8", errors="replace").strip()
             if not text:
+                _emit_digest(force=False)
                 continue
 
-            log.debug(f"📟 SERIAL {engine_id} {port}: {text}")
+            line_count += 1
+
+            if SERIAL_LOG_MODE == "full":
+                log.debug(f"📟 SERIAL {engine_id} {port}: {text}")
 
             try:
                 msg = json.loads(text)
+                json_count += 1
             except Exception:
+                _emit_digest(force=False)
                 continue
 
             if msg.get("type") == "set":
+                set_count += 1
+                key = str(msg.get("key", ""))
+                if key:
+                    set_key_counts[key] = set_key_counts.get(key, 0) + 1
+                    if "value" in msg:
+                        last_set_values[key] = msg.get("value")
+
                 if "engine" not in msg:
                     msg["engine"] = engine_id
                 await broadcast(msg)
 
+            _emit_digest(force=False)
+
     except Exception as e:
         log.warning(f"🔌 Controller {engine_id} disconnected / read error on {port}: {e}")
     finally:
+        # Emit any last digest window before closing
+        _emit_digest(force=True)
+
         try:
             ser.close()
         except Exception:
@@ -577,11 +680,16 @@ async def serial_manager_task():
 async def main():
     log.info(f"🚀 Signalsmith Multi Control Server v{SERVER_VERSION_MSG.get('version', '0.0.0')} starting up...")
     log.info(f"🌐 WS on ws://{WS_HOST}:{WS_PORT}")
-    log.info(f"🔧 Serial: baud={SERIAL_BAUD} scanEvery={SERIAL_SCAN_INTERVAL_SEC}s probeTimeout={SERIAL_PROBE_TIMEOUT_SEC}s")
+    log.info(
+        f"🔧 Serial: baud={SERIAL_BAUD} scanEvery={SERIAL_SCAN_INTERVAL_SEC}s probeTimeout={SERIAL_PROBE_TIMEOUT_SEC}s"
+    )
     log.info(f"🎯 Match: deviceType={TARGET_DEVICE_TYPE}")
     log.info(f"🎚️ Engine slots: {ENGINE_SLOTS}")
     log.info(f"🔒 deviceId->engine mapping: {DEVICE_ID_TO_ENGINE}")
     log.info(f"🧷 strict allowlist: {STRICT_DEVICE_ID_ALLOWLIST}")
+    log.info(
+        f"🧾 serial log: mode={SERIAL_LOG_MODE} digestEvery={SERIAL_LOG_DIGEST_EVERY_SEC}s maxKeys={SERIAL_LOG_MAX_KEYS_IN_DIGEST}"
+    )
 
     async with websockets.serve(ws_handler, WS_HOST, WS_PORT):
         log.info("✅ WebSocket server started")
@@ -589,6 +697,7 @@ async def main():
         await asyncio.gather(
             asyncio.create_task(serial_manager_task()),
             asyncio.create_task(machine_status_task()),
+            asyncio.create_task(controller_heartbeat_task()),
         )
 
 
