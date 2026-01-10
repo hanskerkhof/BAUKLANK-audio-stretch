@@ -106,28 +106,50 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
   # NOTE: keep correct case below (your original was .Xauthority). Use that:
   export XAUTHORITY='$user_home/.Xauthority'
 
-  setsid chromium-browser \
-    --kiosk \
-    --disk-cache-dir=/run/chromium-cache \
-    --no-default-browser-check \
-    --user-data-dir=/home/pi/.config/chromium-kiosk \
-    --no-first-run \
-    --disable-infobars \
-    --disable-session-crashed-bubble \
-    --autoplay-policy=no-user-gesture-required \
-    # ---- Reduce background writes / network noise (kiosk/offline friendly)
-    --disable-background-networking \
-    --disable-component-update \
-    --disable-domain-reliability \
-    --disable-sync \
-    --disable-default-apps \
-    --disable-pings \
-    --metrics-recording-only \
-    --disable-crash-reporter \
-    --disable-breakpad \
-    --disable-features=Translate,MediaRouter \
-    \
-    '$url' >/dev/null 2>&1 &
+#  setsid chromium-browser \
+#    --kiosk \
+#    --disk-cache-dir=/run/chromium-cache \
+#    --no-default-browser-check \
+#    --user-data-dir=/home/pi/.config/chromium-kiosk \
+#    --no-first-run \
+#    --disable-infobars \
+#    --disable-session-crashed-bubble \
+#    --autoplay-policy=no-user-gesture-required \
+#    # ---- Reduce background writes / network noise (kiosk/offline friendly)
+#    --disable-background-networking \
+#    --disable-component-update \
+#    --disable-domain-reliability \
+#    --disable-sync \
+#    --disable-default-apps \
+#    --disable-pings \
+#    --metrics-recording-only \
+#    --disable-crash-reporter \
+#    --disable-breakpad \
+#    --disable-features=Translate,MediaRouter \
+#    \
+#    '$url' >/dev/null 2>&1 &
+
+setsid chromium-browser \
+  --kiosk \
+  --disk-cache-dir=/run/chromium-cache \
+  --user-data-dir=/home/pi/.config/chromium-kiosk \
+  --no-first-run \
+  --no-default-browser-check \
+  --disable-infobars \
+  --disable-session-crashed-bubble \
+  --autoplay-policy=no-user-gesture-required \
+  --disable-background-networking \
+  --disable-component-update \
+  --disable-domain-reliability \
+  --disable-sync \
+  --disable-default-apps \
+  --disable-pings \
+  --metrics-recording-only \
+  --disable-crash-reporter \
+  --disable-breakpad \
+  --disable-notifications \
+  --disable-features=Translate,MediaRouter,PushMessaging \
+  "$url" >/dev/null 2>&1 &
 
   echo \$!
 ")"
