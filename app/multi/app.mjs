@@ -338,19 +338,16 @@ function updateControllerStatus(engine, msg) {
         const scheduleOffset = scheduleAhead ? 0.1 : 0.0;
         engine.stretch.schedule({
             // IMPORTANT: Signalsmith expects explicit active=true/false
-            active: !!engine.controlValues.active,
-
+            active: true,                 // 🔴 THIS IS THE KEY
+            // active: !!engine.controlValues.active,
             rate: rate,
-
             semitones,
             tonalityHz,
             formantSemitones,
             formantCompensation,
             formantBaseHz,
-
             loopStart,
             loopEnd,
-
             // slight look-ahead reduces zipper noise on rapid WS updates
             outputTime: audioContext.currentTime + scheduleOffset
         });
