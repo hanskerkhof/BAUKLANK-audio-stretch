@@ -115,6 +115,18 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
     --disable-infobars \
     --disable-session-crashed-bubble \
     --autoplay-policy=no-user-gesture-required \
+    # ---- Reduce background writes / network noise (kiosk/offline friendly)
+    --disable-background-networking \
+    --disable-component-update \
+    --disable-domain-reliability \
+    --disable-sync \
+    --disable-default-apps \
+    --disable-pings \
+    --metrics-recording-only \
+    --disable-crash-reporter \
+    --disable-breakpad \
+    --disable-features=Translate,MediaRouter \
+    \
     '$url' >/dev/null 2>&1 &
 
   echo \$!

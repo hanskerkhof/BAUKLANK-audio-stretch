@@ -207,13 +207,13 @@ whether swap is used or just enabled
 
 If installed:
 
-sudo iotop -oPa
+    sudo iotop -oPa
 
 
 If not installed yet:
 
-sudo apt-get install -y iotop
-sudo iotop -oPa
+    sudo apt-get install -y iotop
+    sudo iotop -oPa
 
 
 Let it run for ~20–30 seconds while your app + Chromium are running.
@@ -338,27 +338,105 @@ You’re doing this in the right order — measure first, then cut.
 
 
 ---
+# Filesystem fixes to decrease writes:
+
+## 2️⃣ See who is writing to disk (very useful)
+
+If installed:
+
+    sudo iotop -oPa
+
+
+If not installed yet:
+
+    sudo apt-get install -y iotop
+    sudo iotop -oPa
+
 ---
 
 # Recommended changes (low complexity, high payoff)
 # ✅ Step 1 — Move Chromium cache to RAM (big win, safe)
 
-This removes most of those small writes without breaking persistence.
+[//]: # (This removes most of those small writes without breaking persistence.)
 
-    Add to /etc/fstab:
+[//]: # ()
+[//]: # (    Add to /etc/fstab:)
 
-tmpfs  /run/chromium-cache  tmpfs  defaults,noatime,nosuid,nodev,mode=0755,size=128m  0  0
+[//]: # ()
+[//]: # (tmpfs  /run/chromium-cache  tmpfs  defaults,noatime,nosuid,nodev,mode=0755,size=128m  0  0)
+
+[//]: # ()
+[//]: # ()
+[//]: # (Create the dir:)
+
+[//]: # ()
+[//]: # (    sudo mkdir -p /run/chromium-cache)
+
+[//]: # ()
+[//]: # ()
+[//]: # (Launch Chromium with:)
+
+[//]: # ()
+[//]: # (    --disk-cache-dir=/run/chromium-cache)
 
 
-Create the dir:
+The only thing you still need to do
 
-    sudo mkdir -p /run/chromium-cache
+Create the directory automatically at boot (because /run is empty on startup):
+
+    sudo tee /etc/tmpfiles.d/chromium-cache.conf >/dev/null <<'EOF'
+    d /run/chromium-cache 0755 pi pi -
+    EOF
 
 
-Launch Chromium with:
+Activate immediately:
+
+    sudo systemd-tmpfiles --create
+
+
+Sanity check (optional, but satisfying)
+
+After a reboot:
+
+    ls -ld /run/chromium-cache
+
+
+You should see the directory recreated.
+
+Then run Chromium and check:
+
+    iotop -oPa
+
+
+Chromium’s write activity should now be near zero, except for occasional tiny profile updates.
+
+
+That’s it.
+
+
+### Step A — Confirm Chromium is actually using your cache dir
+
+Run this while Chromium is running:
+
+    ps aux | grep chromium | grep disk-cache-dir
+
+
+Expected: you should see something like:
 
     --disk-cache-dir=/run/chromium-cache
 
+
+If you don’t see it, then your kiosk script isn’t passing the flag to the right process (common!).
+
+Also check the directory is actually used:
+
+    ls -lah /run/chromium-cache | head
+
+
+If it stays empty while browsing/using the app, then it’s not being used.
+
+------
+------
 
 Effect:
 
