@@ -131,8 +131,12 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
             upload: null,
             uploadFile: null,
             controlsRoot: null,
-            controllerStatus: null
-        }
+            controllerStatus: null,
+            filename: null
+        },
+
+        // ui state
+        currentFileName: ''
     };
 }
 
@@ -194,6 +198,14 @@ function updateControllerStatus(engine, msg) {
     }
 }
 
+function updateFilename(engine, name) {
+    const el = engine.ui.filename;
+    if (!el) return;
+
+    const safe = (typeof name === 'string' && name.length) ? name : 'no audio loaded';
+    engine.currentFileName = safe;
+    el.textContent = safe;
+}
 
 // ------------------------------------------------------------
 // Main
@@ -464,6 +476,10 @@ function updateControllerStatus(engine, msg) {
         engine.ui.uploadFile = $(`#upload-file-${engine.id}`);
         engine.ui.controlsRoot = $(`#controls-${engine.id}`);
         engine.ui.controllerStatus = $(`#controller-status-${engine.id}`);
+        engine.ui.filename = $(`#filename-${engine.id}`);
+
+        // Initial filename paint (persisted state or placeholder)
+        updateFilename(engine, engine.currentFileName || 'no audio loaded');
 
         // Reset buttons
         engine.ui.controlsRoot.querySelectorAll('.reset-btn').forEach(btn => {
@@ -545,6 +561,7 @@ function updateControllerStatus(engine, msg) {
                 if (engine.stretch) engine.stretch.stop();
                 const file = engine.ui.uploadFile.files && engine.ui.uploadFile.files[0];
                 if (!file) return;
+                updateFilename(engine, file.name);
                 await handleFile(engine, file);
                 engine.controlValues.active = true;
                 controlsChanged(engine);
@@ -602,6 +619,7 @@ function updateControllerStatus(engine, msg) {
 
         // decodeAudioData may "consume" the ArrayBuffer in some browsers, so clone per engine.
         for (const engine of engines.values()) {
+            updateFilename(engine, url.split('/').pop());
             await handleArrayBuffer(engine, buf.slice(0));
         }
     }

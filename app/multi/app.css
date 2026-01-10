@@ -109,6 +109,26 @@ body[data-app="multi"] {
     font-size: 10px;
 }
 
+/* Filename line under the transport (per channel) */
+.channel-filename {
+    padding: 4px var(--header-pad-x);
+    background: var(--panel-bg-strong);
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+@media (max-height: 600px) {
+    .channel-filename {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+}
+
 /* --- Transport row: play + slider + upload on ONE line ------------------- */
 /* We target the actual controls by id patterns you already use. */
 .transport,
