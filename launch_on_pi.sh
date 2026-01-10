@@ -108,6 +108,7 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
 
   setsid chromium-browser \
     --kiosk \
+    --user-data-dir=/home/pi/.config/chromium-kiosk \
     --no-first-run \
     --disable-infobars \
     --disable-session-crashed-bubble \
