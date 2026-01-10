@@ -15,241 +15,299 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>BAUKLANK &middot; Stretch Controller</title>
-  <link rel="stylesheet" href="dist.css">
-  <link rel="stylesheet" href="app.css">
+    <meta charset="utf-8">
+    <title>BAUKLANK &middot; Stretch Controller</title>
+    <link rel="stylesheet" href="dist.css">
+    <link rel="stylesheet" href="app.css">
 
-  <link rel="icon" type="image/png" sizes="128x128" href="favicon-128.png">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/png" sizes="128x128" href="favicon-128.png">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <meta name="title" content="BAUKLANK — Stretch Controller (Multiple)">
-  <meta name="description"
-        content="BAUKLANK web audio stretch controller: real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
-  <meta name="author" content="Hans Kerkhof">
+    <meta name="title" content="BAUKLANK — Stretch Controller (Multiple)">
+    <meta name="description"
+          content="BAUKLANK web audio stretch controller: real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
+    <meta name="author" content="Hans Kerkhof">
 
-  <meta property="og:title" content="BAUKLANK — Stretch Controller (Multiple)">
-  <meta property="og:description"
-        content="Real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
-  <meta property="og:site_name" content="BAUKLANK">
-  <meta property="og:type" content="website">
+    <meta property="og:title" content="BAUKLANK — Stretch Controller (Multiple)">
+    <meta property="og:description"
+          content="Real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
+    <meta property="og:site_name" content="BAUKLANK">
+    <meta property="og:type" content="website">
 
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="BAUKLANK — Stretch Controller (Multiple)">
-  <meta name="twitter:description"
-        content="Real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
-  <meta name="twitter:creator" content="@bauklank">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="BAUKLANK — Stretch Controller (Multiple)">
+    <meta name="twitter:description"
+          content="Real-time time-stretch + pitch controls with external hardware input via WebSocket/serial.">
+    <meta name="twitter:creator" content="@bauklank">
 
-  <meta name="license" content="MIT">
+    <meta name="license" content="MIT">
 </head>
 
 <body>
-  <div id="status-bar">
+<div id="status-bar">
     <div id="server-version">server: v…</div>
     <div id="machine-status">machine: …</div>
     <div id="ws-status">ws: disconnected</div>
-  </div>
+</div>
 
-  <div id="channels">
+<div id="channels">
     <div class="channel" data-engine="A">
-      <div class="channel-header">
-        <div class="channel-title">CHANNEL A (Left)</div>
-        <div class="channel-status">
-          <div id="controller-status-A">controller A: disconnected</div>
+        <div class="channel-header">
+            <div class="channel-title">CHANNEL A (Left)</div>
+            <div class="channel-status">
+                <div id="controller-status-A">controller A: disconnected</div>
+            </div>
+
+            <div class="channel-transport">
+                <button id="playstop-A" alt="toggle play A">...</button>
+                <input id="playback-A" type="range" value="0" min="0" max="1" step="0.001">
+                <input id="upload-file-A" type="file" style="visibility: hidden; width: 0;" accept="audio/*">
+                <button id="upload-A">upload</button>
+            </div>
         </div>
 
-        <div class="channel-transport">
-          <button id="playstop-A" alt="toggle play A">...</button>
-          <input id="playback-A" type="range" value="0" min="0" max="1" step="0.001">
-          <input id="upload-file-A" type="file" style="visibility: hidden" accept="audio/*">
-          <button id="upload-A">upload</button>
+        <div id="controls-A" class="controls">
+
+            <div class="controls-row">
+
+                <label>(WS) rate</label>
+                <button class="reset-btn diagram-blue" type="button" data-reset-key="rate" aria-label="Reset rate"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="0.01" max="4" step="0.01" data-key="rate" class="diagram-blue">
+                <input type="number" min="0" max="4" step="0.01" data-key="rate" class="diagram-blue">
+            </div>
+            <div class="controls-row">
+
+                <label>semitones</label>
+                <button class="reset-btn diagram-red" type="button" data-reset-key="semitones"
+                        aria-label="Reset semitones"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
+                <input type="number" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
+            </div>
+            <div class="controls-row">
+
+                <label>tonality limit</label>
+                <button class="reset-btn diagram-red" type="button" data-reset-key="tonalityHz"
+                        aria-label="Reset tonality limit" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="2000" max="20000" step="100" data-key="tonalityHz" class="diagram-red">
+                <input type="number" min="2000" max="20000" step="1" data-key="tonalityHz" class="diagram-red">
+            </div>
+            <div class="controls-row">
+
+                <label>formant</label>
+                <button class="reset-btn diagram-brown" type="button" data-reset-key="formantBaseHz"
+                        aria-label="Reset formant base" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <div style="display:flex">
+                    <input type="checkbox" data-key="formantCompensation" class="diagram-yellow">
+                    <input type="range" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
+                </div>
+                <input type="number" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
+            </div>
+            <div class="controls-row">
+
+                <label>block (ms)</label>
+                <button class="reset-btn diagram-green" type="button" data-reset-key="blockMs"
+                        aria-label="Reset block (ms)"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="30" max="300" step="1" data-key="blockMs" class="diagram-green">
+                <input type="number" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
+            </div>
+            <div class="controls-row">
+
+                <label>overlap</label>
+                <button class="reset-btn diagram-green" type="button" data-reset-key="overlap"
+                        aria-label="Reset overlap"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
+                <input type="number" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
+            </div>
+            <div>
+                <hr>
+            </div>
+            <div class="controls-row">
+
+                <label>(WS) volume</label>
+                <button class="reset-btn diagram-purple" type="button" data-reset-key="volumePercent"
+                        aria-label="Reset volume" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="1" max="100" step="1" value="35" data-key="volumePercent"
+                       class="diagram-purple">
+                <input type="number" min="1" max="100" step="1" value="35" data-key="volumePercent"
+                       class="diagram-purple">
+
+            </div>
+            <div class="controls-row">
+                <label>(WS) pan</label>
+                <button class="reset-btn diagram-purple" type="button" data-reset-key="pan" aria-label="Reset pan"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
+                <input type="number" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
+            </div>
+
+
         </div>
-      </div>
-
-      <div id="controls-A" class="controls">
-
-
-    <label>(WS) rate</label>
-    <button class="reset-btn diagram-blue" type="button" data-reset-key="rate" aria-label="Reset rate" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="0.01" max="4" step="0.01" data-key="rate" class="diagram-blue">
-    <input type="number" min="0" max="4" step="0.01" data-key="rate" class="diagram-blue">
-
-    <label>semitones</label>
-    <button class="reset-btn diagram-red" type="button" data-reset-key="semitones" aria-label="Reset semitones" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
-    <input type="number" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
-
-    <label>tonality limit</label>
-    <button class="reset-btn diagram-red" type="button" data-reset-key="tonalityHz" aria-label="Reset tonality limit" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="2000" max="20000" step="100" data-key="tonalityHz" class="diagram-red">
-    <input type="number" min="2000" max="20000" step="1" data-key="tonalityHz" class="diagram-red">
-
-    <label>formant</label>
-    <button class="reset-btn diagram-brown" type="button" data-reset-key="formantBaseHz" aria-label="Reset formant base" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <div style="display:flex">
-      <input type="checkbox" data-key="formantCompensation" class="diagram-yellow">
-      <input type="range" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
-    </div>
-    <input type="number" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
-
-    <label>block (ms)</label>
-    <button class="reset-btn diagram-green" type="button" data-reset-key="blockMs" aria-label="Reset block (ms)" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="30" max="300" step="1" data-key="blockMs" class="diagram-green">
-    <input type="number" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
-
-    <label>overlap</label>
-    <button class="reset-btn diagram-green" type="button" data-reset-key="overlap" aria-label="Reset overlap" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
-    <input type="number" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
-
-    <p></p><p></p><p></p><p></p>
-
-    <label>(WS) volume</label>
-    <button class="reset-btn diagram-purple" type="button" data-reset-key="volumePercent" aria-label="Reset volume" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="1" max="100" step="1" value="35" data-key="volumePercent" class="diagram-purple">
-    <input type="number" min="1" max="100" step="1" value="35" data-key="volumePercent" class="diagram-purple">
-
-    <label>(WS) pan</label>
-    <button class="reset-btn diagram-purple" type="button" data-reset-key="pan" aria-label="Reset pan" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
-    <input type="number" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
-
-  
-      </div>
     </div>
 
     <div class="channel" data-engine="B">
-      <div class="channel-header">
-        <div class="channel-title">CHANNEL B (Right)</div>
-        <div class="channel-status">
-          <div id="controller-status-B">controller B: disconnected</div>
+        <div class="channel-header">
+            <div class="channel-title">CHANNEL B (Right)</div>
+            <div class="channel-status">
+                <div id="controller-status-B">controller B: disconnected</div>
+            </div>
+
+            <div class="channel-transport">
+                <button id="playstop-B" alt="toggle play B">...</button>
+                <input id="playback-B" type="range" value="0" min="0" max="1" step="0.001">
+                <input id="upload-file-B" type="file" style="visibility: hidden; width: 0;" accept="audio/*">
+                <button id="upload-B">upload</button>
+            </div>
         </div>
 
-        <div class="channel-transport">
-          <button id="playstop-B" alt="toggle play B">...</button>
-          <input id="playback-B" type="range" value="0" min="0" max="1" step="0.001">
-          <input id="upload-file-B" type="file" style="visibility: hidden" accept="audio/*">
-          <button id="upload-B">upload</button>
+        <div id="controls-B" class="controls">
+
+            <div class="controls-row">
+                <label>(WS) rate</label>
+                <button class="reset-btn diagram-blue" type="button" data-reset-key="rate" aria-label="Reset rate"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="0.01" max="4" step="0.01" data-key="rate" class="diagram-blue">
+                <input type="number" min="0" max="4" step="0.01" data-key="rate" class="diagram-blue">
+            </div>
+            <div class="controls-row">
+                <label>semitones</label>
+                <button class="reset-btn diagram-red" type="button" data-reset-key="semitones"
+                        aria-label="Reset semitones"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
+                <input type="number" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
+            </div>
+            <div class="controls-row">
+                <label>tonality limit</label>
+                <button class="reset-btn diagram-red" type="button" data-reset-key="tonalityHz"
+                        aria-label="Reset tonality limit" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="2000" max="20000" step="100" data-key="tonalityHz" class="diagram-red">
+                <input type="number" min="2000" max="20000" step="1" data-key="tonalityHz" class="diagram-red">
+            </div>
+            <div class="controls-row">
+
+                <label>formant</label>
+                <button class="reset-btn diagram-brown" type="button" data-reset-key="formantBaseHz"
+                        aria-label="Reset formant base" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <div style="display:flex">
+                    <input type="checkbox" data-key="formantCompensation" class="diagram-yellow">
+                    <input type="range" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
+                </div>
+                <input type="number" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
+            </div>
+            <div class="controls-row">
+
+                <label>block (ms)</label>
+                <button class="reset-btn diagram-green" type="button" data-reset-key="blockMs"
+                        aria-label="Reset block (ms)"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="30" max="300" step="1" data-key="blockMs" class="diagram-green">
+                <input type="number" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
+
+            </div>
+            <div class="controls-row">
+                <label>overlap</label>
+                <button class="reset-btn diagram-green" type="button" data-reset-key="overlap"
+                        aria-label="Reset overlap"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
+                <input type="number" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
+
+            </div>
+            <div>
+                <hr>
+            </div>
+            <div class="controls-row">
+
+                <label>(WS) volume</label>
+                <button class="reset-btn diagram-purple" type="button" data-reset-key="volumePercent"
+                        aria-label="Reset volume" title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="1" max="100" step="1" value="35" data-key="volumePercent"
+                       class="diagram-purple">
+                <input type="number" min="1" max="100" step="1" value="35" data-key="volumePercent"
+                       class="diagram-purple">
+            </div>
+            <div class="controls-row">
+
+                <label>(WS) pan</label>
+                <button class="reset-btn diagram-purple" type="button" data-reset-key="pan" aria-label="Reset pan"
+                        title="Reset to default">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
+                    </svg>
+                </button>
+                <input type="range" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
+                <input type="number" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
+            </div>
+
+
         </div>
-      </div>
-
-      <div id="controls-B" class="controls">
-
-
-    <label>(WS) rate</label>
-    <button class="reset-btn diagram-blue" type="button" data-reset-key="rate" aria-label="Reset rate" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="0.01" max="4" step="0.01" data-key="rate" class="diagram-blue">
-    <input type="number" min="0" max="4" step="0.01" data-key="rate" class="diagram-blue">
-
-    <label>semitones</label>
-    <button class="reset-btn diagram-red" type="button" data-reset-key="semitones" aria-label="Reset semitones" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
-    <input type="number" min="-12" max="12" step="1" data-key="semitones" class="diagram-red">
-
-    <label>tonality limit</label>
-    <button class="reset-btn diagram-red" type="button" data-reset-key="tonalityHz" aria-label="Reset tonality limit" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="2000" max="20000" step="100" data-key="tonalityHz" class="diagram-red">
-    <input type="number" min="2000" max="20000" step="1" data-key="tonalityHz" class="diagram-red">
-
-    <label>formant</label>
-    <button class="reset-btn diagram-brown" type="button" data-reset-key="formantBaseHz" aria-label="Reset formant base" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <div style="display:flex">
-      <input type="checkbox" data-key="formantCompensation" class="diagram-yellow">
-      <input type="range" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
     </div>
-    <input type="number" min="50" max="500" step="1" data-key="formantBaseHz" class="diagram-brown">
+</div>
 
-    <label>block (ms)</label>
-    <button class="reset-btn diagram-green" type="button" data-reset-key="blockMs" aria-label="Reset block (ms)" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="30" max="300" step="1" data-key="blockMs" class="diagram-green">
-    <input type="number" min="50" max="300" step="1" data-key="blockMs" class="diagram-green">
-
-    <label>overlap</label>
-    <button class="reset-btn diagram-green" type="button" data-reset-key="overlap" aria-label="Reset overlap" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
-    <input type="number" min="2" max="8" step="0.1" data-key="overlap" class="diagram-green">
-
-    <p></p><p></p><p></p><p></p>
-
-    <label>(WS) volume</label>
-    <button class="reset-btn diagram-purple" type="button" data-reset-key="volumePercent" aria-label="Reset volume" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="1" max="100" step="1" value="35" data-key="volumePercent" class="diagram-purple">
-    <input type="number" min="1" max="100" step="1" value="35" data-key="volumePercent" class="diagram-purple">
-
-    <label>(WS) pan</label>
-    <button class="reset-btn diagram-purple" type="button" data-reset-key="pan" aria-label="Reset pan" title="Reset to default">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 5a7 7 0 1 1-6.3 4H3l3.5-3.5L10 9H7.9A5 5 0 1 0 12 7c-1 0-2 .3-2.8.9L7.8 6.5A7 7 0 0 1 12 5z"/>
-      </svg>
-    </button>
-    <input type="range" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
-    <input type="number" min="-1" max="1" step="0.01" value="0" data-key="pan" class="diagram-purple">
-
-  
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="app.mjs"></script>
+<script type="module" src="app.mjs"></script>
 </body>
 </html>
