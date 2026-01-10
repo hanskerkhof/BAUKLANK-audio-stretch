@@ -108,6 +108,7 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
 
   setsid chromium-browser \
     --kiosk \
+    --disk-cache-dir=/run/chromium-cache \
     --no-default-browser-check \
     --user-data-dir=/home/pi/.config/chromium-kiosk \
     --no-first-run \
