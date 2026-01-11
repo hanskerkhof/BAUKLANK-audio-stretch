@@ -379,7 +379,7 @@ function hideProcessing(engine) {
         const loopEnd = clamp(toFiniteNumber(engine.controlValues.loopEnd, engine.audioDuration), 0, engine.audioDuration);
 
         // Apply scheduling params (rate/pitch/etc.)
-        const rate = clamp(toFiniteNumber(engine.controlValues.rate, 0.001), 0.00001, 4);
+        const rate = clamp(toFiniteNumber(engine.controlValues.rate, 0.001), 0.00001, 2);
         const semitones = clamp(toFiniteNumber(engine.controlValues.semitones, 0), -48, 48);
         const tonalityHz = clamp(toFiniteNumber(engine.controlValues.tonalityHz, 16000), 20, 22050);
         const formantSemitones = clamp(toFiniteNumber(engine.controlValues.formantSemitones, 0), -48, 48);
