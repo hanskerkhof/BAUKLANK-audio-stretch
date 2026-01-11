@@ -24,6 +24,7 @@ Paste it into github settings -> SSH and GPG keys -> New SSH key
     sudo apt install -y xdotool
     sudo apt install -y nodejs npm node-semver
     sudo npm i -g http-server
+    sudo apt-get install -y iotop
     sudo pip3 install --break-system-packages websockets
 
 chmod for the startup script to work:
@@ -315,7 +316,7 @@ To set the volume:
 
 Speaker test
 
-    speaker-test -t wav -c2 -l2
+    speaker-test -t wav -f 600 -c2 -l2
     speaker-test -t sine -f 600 -c2 -l2
 
 ----

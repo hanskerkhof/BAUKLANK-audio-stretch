@@ -61,6 +61,7 @@ APPEND_GIT_DIRTY_SUFFIX = True
 # "full"   -> log EVERY incoming serial line (very noisy)
 # "digest" -> log a compact summary every SERIAL_LOG_DIGEST_EVERY_SEC seconds per engine
 SERIAL_LOG_MODE = "digest"  # "full" | "digest"
+# SERIAL_LOG_MODE = "full"  # "full" | "digest"
 SERIAL_LOG_DIGEST_EVERY_SEC = 5.0
 SERIAL_LOG_MAX_KEYS_IN_DIGEST = 10
 
@@ -591,7 +592,26 @@ async def serial_port_task(engine_id: str, info: ControllerInfo):
                 key = str(msg.get("key", ""))
                 if key:
                     set_key_counts[key] = set_key_counts.get(key, 0) + 1
-                    if "value" in msg:
+
+                # Normalize value types for the web app.
+                # - volume: int
+                # - tone:   int (semitones)
+                # - rate:   float
+                if "value" in msg:
+                    raw_val = msg.get("value")
+                    if key in ("volume", "tone"):
+                        try:
+                            msg["value"] = int(raw_val)
+                        except Exception:
+                            pass
+                    elif key == "rate":
+                        try:
+                            msg["value"] = float(raw_val)
+                        except Exception:
+                            pass
+
+                    # Track last values for digest logs
+                    if key:
                         last_set_values[key] = msg.get("value")
 
                 if "engine" not in msg:

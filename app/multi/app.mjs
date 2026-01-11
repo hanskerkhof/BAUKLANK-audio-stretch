@@ -456,6 +456,28 @@ function hideProcessing(engine) {
             return;
         }
 
+
+        // 'tone' is the hardware-controller name for semitones (pitch), in integer steps.
+        // We keep the internal control key as 'semitones' (Signalsmith schedule param).
+        if (key === 'tone') {
+            const n = toFiniteNumber(value, NaN);
+            if (!Number.isFinite(n)) return;
+            const st = Math.round(clamp(n, -24, 24));
+            engine.controlValues.semitones = st;
+            controlsChanged(engine, /*scheduleAhead=*/true);
+            return;
+        }
+
+        // Ensure semitones stays integer-ish even if UI sends floats.
+        if (key === 'semitones') {
+            const n = toFiniteNumber(value, NaN);
+            if (!Number.isFinite(n)) return;
+            const st = Math.round(clamp(n, -48, 48));
+            engine.controlValues.semitones = st;
+            controlsChanged(engine, /*scheduleAhead=*/true);
+            return;
+        }
+
         if (key in engine.controlValues) {
             const current = engine.controlValues[key];
             if (typeof current === 'number') {

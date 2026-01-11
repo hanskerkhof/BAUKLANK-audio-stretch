@@ -388,7 +388,6 @@ Create the directory automatically at boot (because /run is empty on startup):
     d /run/chromium-cache 0755 pi pi -
     EOF
 
-
 Activate immediately:
 
     sudo systemd-tmpfiles --create
