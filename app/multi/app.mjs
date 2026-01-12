@@ -76,7 +76,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
         volume: .10,
         pan: (engineId === 'A' ? -1 : (engineId === 'B' ? 1 : 0)),
         // pan in [-1..1], applied via L/R gains into ChannelMerger
-        active: false,
+        active: true,
 
         rate: 0.001,
         semitones: 0,
