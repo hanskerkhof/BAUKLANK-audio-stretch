@@ -69,7 +69,7 @@ function setLocalStorageIfChanged(engineId, key, value, opts = {}) {
 // ------------------------------------------------------------
 function createEngine(audioContext, mixNode, engineId, outputIndex) {
 
-    const LOAD_CONFIG_FROM_LOCAL_STORAGE = fale
+    const LOAD_CONFIG_FROM_LOCAL_STORAGE = false;
 
     const controlDefaults = {
         // UI alias: volumePercent maps to controlValues.volume
