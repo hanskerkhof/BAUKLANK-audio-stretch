@@ -73,7 +73,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
 
     const controlDefaults = {
         // UI alias: volumePercent maps to controlValues.volume
-        volume: 1,
+        volume: .10,
         pan: (engineId === 'A' ? -1 : (engineId === 'B' ? 1 : 0)),
         // pan in [-1..1], applied via L/R gains into ChannelMerger
         active: false,
