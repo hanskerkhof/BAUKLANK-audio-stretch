@@ -68,6 +68,9 @@ function setLocalStorageIfChanged(engineId, key, value, opts = {}) {
 // Engine factory (A/B now, N later)
 // ------------------------------------------------------------
 function createEngine(audioContext, mixNode, engineId, outputIndex) {
+
+    const LOAD_CONFIG_FROM_LOCAL_STORAGE = fale
+
     const controlDefaults = {
         // UI alias: volumePercent maps to controlValues.volume
         volume: 1,
@@ -94,15 +97,19 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
 
     // Load persisted values (per engine)
     const controlValues = {...controlDefaults};
-    for (const k of Object.keys(controlDefaults)) {
-        const v = loadFromLocalStorage(engineId, k, controlDefaults[k]);
-        controlValues[k] = v;
+    if(LOAD_CONFIG_FROM_LOCAL_STORAGE) {
+        for (const k of Object.keys(controlDefaults)) {
+            const v = loadFromLocalStorage(engineId, k, controlDefaults[k]);
+            controlValues[k] = v;
+        }
     }
 
     const configValues = {...configDefaults};
-    for (const k of Object.keys(configDefaults)) {
-        const v = loadFromLocalStorage(engineId, k, configDefaults[k]);
-        configValues[k] = v;
+    if(LOAD_CONFIG_FROM_LOCAL_STORAGE) {
+        for (const k of Object.keys(configDefaults)) {
+            const v = loadFromLocalStorage(engineId, k, configDefaults[k]);
+            configValues[k] = v;
+        }
     }
 
     const gain = audioContext.createGain();
