@@ -195,6 +195,7 @@ label.btn {
 .controls-row {
     display: flex;
     gap: var(--ui-gap);
+    padding-bottom: 10px;
 }
 
 .controls-row label {
@@ -483,19 +484,18 @@ header, .header, .topbar {
 /*   Status bar (bottom) — affects ONLY status UI*/
 /*============================================================ *!*/
 
-/*#status-bar {*/
-/*    position: fixed;*/
-/*    left: 12px;*/
-/*    right: 12px;*/
-/*    bottom: 12px;*/
-/*    z-index: 9999;*/
+#status-bar {
+    display: flex;
+    gap: 10px;
+    /*align-items: center;*/
+    /*flex: 1;*/
+    pointer-events: none; /* never blocks sliders */
+}
 
-/*    display: flex;*/
-/*    gap: 10px;*/
-/*    align-items: center;*/
-
-/*    pointer-events: none; !* never blocks sliders *!*/
-/*}*/
+#status-bar > div {
+    /*flex: 1;*/
+    /*text-align: center;*/
+}
 
 /*#status-bar > #controller-status,*/
 /*#status-bar > #server-version,*/
