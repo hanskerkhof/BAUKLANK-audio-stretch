@@ -635,14 +635,29 @@ function hideProcessing(engine) {
             controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
         };
 
-        // keep playback slider updated
-        setInterval(() => {
-            if (!engine.ui.playback) return;
-            engine.ui.playback.max = engine.audioDuration;
-            if (!playbackHeld && engine.stretch) {
-                engine.ui.playback.value = engine.stretch.inputTime;
-            }
-        }, 50);
+const PLAYBACK_UI_HZ = 5;           // 5Hz instead of 20Hz
+const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
+
+setInterval(() => {
+  if (!engine.ui.playback) return;
+
+  // max rarely changes; only update when duration changes
+  const dur = engine.audioDuration || 1;
+  if (engine.ui.playback.max != dur) engine.ui.playback.max = dur;
+
+  if (!playbackHeld && engine.stretch && engine.controlValues.active) {
+    engine.ui.playback.value = engine.stretch.inputTime;
+  }
+}, PLAYBACK_UI_MS);
+
+        // // keep playback slider updated
+        // setInterval(() => {
+        //     if (!engine.ui.playback) return;
+        //     engine.ui.playback.max = engine.audioDuration;
+        //     if (!playbackHeld && engine.stretch) {
+        //         engine.ui.playback.value = engine.stretch.inputTime;
+        //     }
+        // }, 50);
 
         // Initial paint
         configChanged(engine);
