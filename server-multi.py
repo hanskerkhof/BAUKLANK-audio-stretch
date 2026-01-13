@@ -290,6 +290,48 @@ SERVER_VERSION_MSG: dict = {
 MACHINE_STATUS: dict = build_machine_status()
 
 
+
+
+# =========================
+# Startup debug helpers
+# =========================
+def _log_startup_debug() -> None:
+    # Engines
+    engine_count = len(ENGINE_SLOTS)
+    log.info(f"🧩 Engine count: {engine_count}")
+    log.info(f"🧩 Engine slots: {ENGINE_SLOTS}")
+
+    # Controller expectations
+    if STRICT_DEVICE_ID_ALLOWLIST:
+        log.info(f"🎛️ Expected controller deviceId(s): {sorted(DEVICE_ID_ALLOWLIST)} (STRICT allowlist=ON)")
+    else:
+        log.info("🎛️ Expected controller deviceId(s): ANY (STRICT allowlist=OFF)")
+
+    log.info(f"🎛️ Expected controller deviceType: {TARGET_DEVICE_TYPE}")
+    log.info("🎛️ Expected serial hello payload fields: type='hello', deviceType, deviceId, fw")
+    log.info("🎛️ Expected serial set payload: {type:'set', channel:'A|B', key:'...', value:...}")
+
+    # Serial scanning / exclude info
+    try:
+        excl = sorted(SERIAL_PORT_EXCLUDE)
+    except Exception:
+        excl = []
+    if excl:
+        log.info(f"🚫 Serial exclude list: {excl}")
+    else:
+        log.info("🚫 Serial exclude list: (empty)")
+
+    log.info(
+        f"🔎 Serial scan config: baud={SERIAL_BAUD} scanEvery={SERIAL_SCAN_INTERVAL_SEC}s probeTimeout={SERIAL_PROBE_TIMEOUT_SEC}s"
+    )
+
+    # Show current candidate ports once at boot (best effort)
+    try:
+        ports = _list_candidate_ports()
+        log.info(f"🔎 Serial candidates at boot: {ports if ports else '—'}")
+    except Exception as e:
+        log.info(f"🔎 Serial candidates at boot: (error: {e})")
+
 # =========================
 # WebSocket client registry
 # =========================
