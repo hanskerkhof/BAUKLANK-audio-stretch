@@ -110,6 +110,247 @@ The app:
     npx http-server app/multi -p 8080 -c-1 -o
 
 
+---
+
+## Command-line options (`server-multi.py`)
+
+`server-multi.py` supports several command-line options to control logging, WebSocket binding, and engine slot configuration.
+All options are optional; sensible defaults are used when omitted.
+
+### Basic usage
+
+```bash
+python3 server-multi.py
+```
+
+Example with explicit options:
+
+```bash
+python3 server-multi.py \
+  --engine-count 2 \
+  --ws-host localhost \
+  --ws-port 8765 \
+  --startup-log-level INFO \
+  --run-log-level WARNING
+```
+
+Good catch — **`ports` are not a command-line option** 👍
+Serial ports are **auto-discovered**, not specified explicitly.
+
+Here’s the clarification text you can add **right after the example** in the README.
+
+---
+
+### Serial ports (automatic)
+
+`server-multi.py` **does not take a `--port` or `--serial-port` argument**.
+
+Instead, it:
+
+1. Continuously scans all available serial ports using `pyserial`
+2. Excludes known system / virtual ports (see `SERIAL_PORT_EXCLUDE`)
+3. Probes each remaining port with:
+
+   ```json
+   {"type":"whoareyou"}
+   ```
+4. Attaches only devices that respond with:
+
+   ```json
+   {
+     "type": "hello",
+     "deviceType": "bauklank-controller",
+     "deviceId": "...",
+     "fw": "..."
+   }
+   ```
+
+Controllers can be **connected or disconnected at runtime**; the server
+will automatically:
+
+* re-scan
+* re-handshake
+* re-assign engine slots
+* broadcast updated `controllerStatus` messages over WebSocket
+
+---
+
+### Why there is no `--port` option
+
+This is intentional:
+
+* Controllers are hot-pluggable
+* USB device paths may change between boots
+* One server may manage **multiple controllers**
+* Engine assignment is handled logically (`A`, `B`, …), not physically
+
+If you need deterministic assignment, use:
+
+```python
+DEVICE_ID_TO_ENGINE = {
+    "BKTP_CTL_01": "A",
+    "BKTP_CTL_02": "B",
+}
+```
+
+---
+
+### When to worry about ports
+
+You only need to care about serial ports if:
+
+* a controller is **not detected**
+* permissions prevent opening `/dev/tty*` or `/dev/cu.*`
+* a virtual port needs to be excluded
+
+In that case:
+
+* temporarily run with `--startup-log-level DEBUG`
+* inspect the `🔎 Serial scan:` lines
+
+---
+
+### Available options
+
+#### `--engine-count <N>`
+
+Number of logical **engine slots** to expose (`A`, `B`, `C`, …).
+
+* Default: `2`
+* Slots are named sequentially starting at `A`
+* Controllers are assigned to engine slots based on:
+
+  1. `DEVICE_ID_TO_ENGINE` mapping
+  2. First free slot (fallback)
+
+**Example**
+
+```bash
+--engine-count 1   # only engine A
+--engine-count 2   # engines A, B
+```
+
+---
+
+#### `--ws-host <hostname>`
+
+WebSocket bind address.
+
+* Default: `localhost`
+* Use `0.0.0.0` to expose the server on the network
+
+**Example**
+
+```bash
+--ws-host 0.0.0.0
+```
+
+---
+
+#### `--ws-port <port>`
+
+WebSocket port number.
+
+* Default: `8765`
+
+**Example**
+
+```bash
+--ws-port 9000
+```
+
+---
+
+#### `--startup-log-level <LEVEL>`
+
+Logging level **during startup only**.
+
+This affects:
+
+* configuration printout
+* initial serial scan
+* WebSocket server startup
+* early controller detection
+
+Typical use: **see what’s going on during boot, then go quiet**.
+
+Allowed values:
+
+* `DEBUG`
+* `INFO`
+* `WARNING`
+* `ERROR`
+
+Default: `INFO`
+
+**Example**
+
+```bash
+--startup-log-level DEBUG
+```
+
+---
+
+#### `--run-log-level <LEVEL>`
+
+Logging level **after startup is complete**.
+
+This is what you usually want to keep **low** when running unattended
+(e.g. in `systemd` / journal).
+
+Allowed values:
+
+* `DEBUG`   (very verbose, serial digests, WS traffic)
+* `INFO`    (connect / disconnect / heartbeat)
+* `WARNING` (recommended for long-running installs)
+* `ERROR`
+
+Default: `WARNING`
+
+**Example (gallery / installation mode)**
+
+```bash
+--run-log-level WARNING
+```
+
+---
+
+### Recommended presets
+
+#### Development / debugging
+
+```bash
+python3 server-multi.py \
+  --startup-log-level DEBUG \
+  --run-log-level DEBUG
+```
+
+#### Installation / gallery (quiet journal)
+
+```bash
+python3 server-multi.py \
+  --startup-log-level INFO \
+  --run-log-level WARNING
+```
+
+---
+
+### Notes
+
+* Serial ports are **continuously scanned**; controllers can be connected or disconnected at runtime.
+* When a controller appears or disappears:
+
+  * the server re-handshakes automatically
+  * a new `controllerStatus` message is broadcast over WebSocket
+* Engine assignment is deterministic when `DEVICE_ID_TO_ENGINE` is used.
+
+---
+
+If you want, I can also add:
+
+* a **`systemd` example** using these flags
+* a **“Troubleshooting startup”** section (serial permissions, ghost ports, etc.)
+* or a **one-screen “cheat sheet”** for operators
 
 
 ---
@@ -124,7 +365,7 @@ Run server.py either from pyCharm or from the command line:
 
 Serve the frontend from a terminal
 
-    npx http-server app -p 8080 -c-1 -o
+    npx http-server app/multi -p 8080 -c-1 -o
 
 https://github.com/Signalsmith-Audio/pitch-time-example-code
 
