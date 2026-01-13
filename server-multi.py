@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import json
 import logging
 import time
@@ -60,6 +61,44 @@ SERIAL_PORT_EXCLUDE: Set[str] = {
 
 # Engines carried over WebSocket
 ENGINE_SLOTS = ["A", "B"]
+
+# =========================
+# CLI
+# =========================
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="BAUKLANK multi-engine controller bridge (serial -> websocket)."
+    )
+
+    parser.add_argument(
+        "--engine-count",
+        type=int,
+        choices=[1, 2],
+        default=2,
+        help="How many engine slots to serve. Default: 2 (A+B).",
+    )
+    parser.add_argument(
+        "--slot",
+        type=str,
+        choices=["A", "B"],
+        default="A",
+        help="When --engine-count=1, which slot to serve (A or B). Default: A.",
+    )
+    parser.add_argument(
+        "--ws-host",
+        type=str,
+        default=WS_HOST,
+        help=f"WebSocket bind host. Default: {WS_HOST}",
+    )
+    parser.add_argument(
+        "--ws-port",
+        type=int,
+        default=WS_PORT,
+        help=f"WebSocket bind port. Default: {WS_PORT}",
+    )
+
+    return parser.parse_args()
+
 
 # ✅ Strict allowlist (optional)
 # If True, ONLY controllers whose deviceId is listed here will attach.
@@ -605,6 +644,13 @@ async def serial_manager_task():
 
 
 async def main():
+    global ENGINE_SLOTS, WS_HOST, WS_PORT
+
+    args = _parse_args()
+    WS_HOST = args.ws_host
+    WS_PORT = args.ws_port
+    ENGINE_SLOTS = [args.slot] if args.engine_count == 1 else ["A", "B"]
+
     log.info(f"🚀 Multi BOTH Control Server v{SERVER_VERSION_MSG.get('version', '0.0.0')} starting up...")
     log.info(f"🌐 WS on ws://{WS_HOST}:{WS_PORT}")
     log.info(

@@ -91,7 +91,9 @@ done
 # Start python websocket/serial bridge in background (own process group)
 # ------------------------------------------------------------
 log "Starting server-multi.py"
-py_pid="$(setsid bash -lc "exec python3 server-multi.py" >/dev/null 2>&1 & echo $!)"
+# NOTE start with --engine-count 1 --slot A to start only one engine
+#      start with --engine-count 2 --slot A,B to start two engines
+py_pid="$(setsid bash -lc "exec python3 server-multi.py --engine-count 1 --slot A" >/dev/null 2>&1 & echo $!)"
 log "server-multi.py pid/pgid: $py_pid"
 
 # Optional: small pause so server-multi.py can bind the port
