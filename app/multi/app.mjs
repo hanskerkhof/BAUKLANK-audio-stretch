@@ -340,6 +340,8 @@ function hideProcessing(engine) {
         }
     }
 
+    let lastUiPaintMs = 0;
+
     function controlsChanged(engine, scheduleAhead, opts = {}) {
         // Persist controls (selected ones)
 // HK - Temp out-commeted to check if i can lower cpu
@@ -415,8 +417,12 @@ function hideProcessing(engine) {
             outputTime: audioContext.currentTime + scheduleOffset
         });
 
-        // Reflect in UI
-        if (engine.ui.controlsRoot) {
+          const now = performance.now();
+          if (now - lastUiPaintMs > 250) {  // 4Hz UI paint max
+            lastUiPaintMs = now;
+            // Reflect in UI block here
+            // Reflect in UI
+           if (engine.ui.controlsRoot) {
             engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
                 const key = input.dataset.key;
                 if (!key) return;
@@ -435,6 +441,7 @@ function hideProcessing(engine) {
                 }
             });
         }
+          } // if (now - lastUiPaintMs > 250)
     }
 
     // Apply incoming control/config updates, scoped to engine (WS/serial)
