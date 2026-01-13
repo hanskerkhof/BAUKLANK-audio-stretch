@@ -22,38 +22,6 @@ function getDefaultAudioUrl(engineId) {
 }
 
 // ------------------------------------------------------------
-// Engine slot selection (default: 2 engines)
-// ------------------------------------------------------------
-//
-// Supported URL params:
-//   ?engines=2                (default)
-//   ?engines=1&slot=A
-//   ?engines=1&slot=B
-//
-// Preferred source: window.BAUKLANK_BOOT (set by index.html boot script).
-function getRequestedEngineSlots() {
-    // 1) Preferred: provided by index.html boot script
-    if (window.BAUKLANK_BOOT && Array.isArray(window.BAUKLANK_BOOT.engineSlots)) {
-        const slots = window.BAUKLANK_BOOT.engineSlots
-            .map(s => String(s).toUpperCase())
-            .filter(s => s === 'A' || s === 'B');
-        if (slots.length) return slots;
-    }
-
-    // 2) Fallback: parse URL directly
-    const p = new URLSearchParams(location.search);
-    const enginesParam = p.get('engines');
-    const slotParam = (p.get('slot') || 'A').toUpperCase();
-
-    if (enginesParam === '1') {
-        return [(slotParam === 'B') ? 'B' : 'A'];
-    }
-    return ['A', 'B']; // ✅ default = 2 engines
-}
-
-
-
-// ------------------------------------------------------------
 // Small utilities (guards against NaN / non-finite values)
 // ------------------------------------------------------------
 function toFiniteNumber(value, fallback) {
@@ -291,12 +259,9 @@ function hideProcessing(engine) {
     const mixNode = audioContext.createChannelMerger(2);
     mixNode.connect(audioContext.destination);
 
-    const requestedSlots = getRequestedEngineSlots();
-    const defaultEngineId = requestedSlots[0] || 'A';
-
     const engines = new Map();
-    if (requestedSlots.includes('A')) engines.set('A', createEngine(audioContext, mixNode, 'A', 0));
-    if (requestedSlots.includes('B')) engines.set('B', createEngine(audioContext, mixNode, 'B', 1));
+    engines.set('A', createEngine(audioContext, mixNode, 'A', 0));
+    engines.set('B', createEngine(audioContext, mixNode, 'B', 1));
 
     // ------------------------------------------------------------
     // File handling (per engine)
@@ -572,9 +537,6 @@ function hideProcessing(engine) {
         engine.ui.upload = $(`#upload-${engine.id}`);
         engine.ui.uploadFile = $(`#upload-file-${engine.id}`);
         engine.ui.controlsRoot = $(`#controls-${engine.id}`);
-
-        // If this engine's panel was removed by index.html (single-engine mode), skip wiring.
-        if (!engine.ui.controlsRoot) return;
         engine.ui.controllerStatus = $(`#controller-status-${engine.id}`);
         engine.ui.filename = $(`#filename-${engine.id}`);
 
@@ -750,13 +712,7 @@ setInterval(() => {
 
         ws = new WebSocket(url);
 
-        ws.onopen = () => {
-            updateWsStatus('ws: connected', 'ok');
-            // Optional: let the server know which engine slots we are running
-            try {
-                ws.send(JSON.stringify({type: 'hello', engineSlots: requestedSlots}));
-            } catch {}
-        };
+        ws.onopen = () => updateWsStatus('ws: connected', 'ok');
 
         ws.onclose = () => {
             updateWsStatus('ws: disconnected', 'warn');
@@ -785,13 +741,13 @@ setInterval(() => {
             }
 
             if (msg.type === 'controllerStatus') {
-                const engineId = (typeof msg.engine === 'string' && engines.has(msg.engine)) ? msg.engine : defaultEngineId;
+                const engineId = (typeof msg.engine === 'string' && engines.has(msg.engine)) ? msg.engine : 'A';
                 updateControllerStatus(engines.get(engineId), msg);
                 return;
             }
 
             if (msg.type === 'set') {
-                const engineId = (typeof msg.engine === 'string' && engines.has(msg.engine)) ? msg.engine : defaultEngineId;
+                const engineId = (typeof msg.engine === 'string' && engines.has(msg.engine)) ? msg.engine : 'A';
                 const engine = engines.get(engineId);
                 applyIncomingSet(engine, msg.key, msg.value);
             }

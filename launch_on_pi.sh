@@ -14,7 +14,8 @@ set -euo pipefail
 
 user_name="pi"
 user_home="/home/$user_name"
-url="http://127.0.0.1:8080/"  # default to ...
+#url="http://127.0.0.1:8080/"  # default to ...
+url="http://127.0.0.1:8080/index.html?engines=1&slot=A"
 
 # Web root for the static site
 web_root="app/multi"
