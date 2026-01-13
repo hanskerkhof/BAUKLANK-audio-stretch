@@ -51,18 +51,19 @@ function loadFromLocalStorage(engineId, key, fallback) {
     }
 }
 
-function setLocalStorageIfChanged(engineId, key, value, opts = {}) {
-    const decimals = Number.isFinite(opts.decimals) ? opts.decimals : null;
-    let v = value;
-    if (typeof v === 'number' && Number.isFinite(v) && decimals !== null) {
-        const f = Math.pow(10, decimals);
-        v = Math.round(v * f) / f;
-    }
-    const sk = storageKey(engineId, key);
-    const prev = localStorage.getItem(sk);
-    const next = JSON.stringify(v);
-    if (prev !== next) localStorage.setItem(sk, next);
-}
+// HK - Temp out-commeted to check if i can lower cpu
+// function setLocalStorageIfChanged(engineId, key, value, opts = {}) {
+//     const decimals = Number.isFinite(opts.decimals) ? opts.decimals : null;
+//     let v = value;
+//     if (typeof v === 'number' && Number.isFinite(v) && decimals !== null) {
+//         const f = Math.pow(10, decimals);
+//         v = Math.round(v * f) / f;
+//     }
+//     const sk = storageKey(engineId, key);
+//     const prev = localStorage.getItem(sk);
+//     const next = JSON.stringify(v);
+//     if (prev !== next) localStorage.setItem(sk, next);
+// }
 
 // ------------------------------------------------------------
 // Engine factory (A/B now, N later)
@@ -309,9 +310,10 @@ function hideProcessing(engine) {
     // ------------------------------------------------------------
     function configChanged(engine) {
         // Persist config values
-        for (const [k, v] of Object.entries(engine.configValues)) {
-            setLocalStorageIfChanged(engine.id, k, v);
-        }
+// HK - Temp out-commeted to check if i can lower cpu
+        // for (const [k, v] of Object.entries(engine.configValues)) {
+        //     setLocalStorageIfChanged(engine.id, k, v);
+        // }
 
         if (!engine.stretch) return;
 
@@ -340,17 +342,18 @@ function hideProcessing(engine) {
 
     function controlsChanged(engine, scheduleAhead, opts = {}) {
         // Persist controls (selected ones)
-        setLocalStorageIfChanged(engine.id, 'volume', engine.controlValues.volume, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'pan', engine.controlValues.pan, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'rate', engine.controlValues.rate, {decimals: 6});
-        setLocalStorageIfChanged(engine.id, 'semitones', engine.controlValues.semitones, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'tonalityHz', engine.controlValues.tonalityHz, {decimals: 2});
-        setLocalStorageIfChanged(engine.id, 'formantSemitones', engine.controlValues.formantSemitones, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'formantCompensation', !!engine.controlValues.formantCompensation);
-        setLocalStorageIfChanged(engine.id, 'formantBaseHz', engine.controlValues.formantBaseHz, {decimals: 2});
-        setLocalStorageIfChanged(engine.id, 'loopStart', engine.controlValues.loopStart, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'loopEnd', engine.controlValues.loopEnd, {decimals: 4});
-        setLocalStorageIfChanged(engine.id, 'active', !!engine.controlValues.active);
+// HK - Temp out-commeted to check if i can lower cpu
+        // setLocalStorageIfChanged(engine.id, 'volume', engine.controlValues.volume, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'pan', engine.controlValues.pan, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'rate', engine.controlValues.rate, {decimals: 6});
+        // setLocalStorageIfChanged(engine.id, 'semitones', engine.controlValues.semitones, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'tonalityHz', engine.controlValues.tonalityHz, {decimals: 2});
+        // setLocalStorageIfChanged(engine.id, 'formantSemitones', engine.controlValues.formantSemitones, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'formantCompensation', !!engine.controlValues.formantCompensation);
+        // setLocalStorageIfChanged(engine.id, 'formantBaseHz', engine.controlValues.formantBaseHz, {decimals: 2});
+        // setLocalStorageIfChanged(engine.id, 'loopStart', engine.controlValues.loopStart, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'loopEnd', engine.controlValues.loopEnd, {decimals: 4});
+        // setLocalStorageIfChanged(engine.id, 'active', !!engine.controlValues.active);
 
         // Update gain
         const targetVol = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
