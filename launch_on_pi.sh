@@ -90,12 +90,31 @@ done
 # ------------------------------------------------------------
 # Start python websocket/serial bridge in background (own process group)
 # ------------------------------------------------------------
+#log "Starting server-multi.py"
+## NOTE start with --engine-count 1 --slot A to start only one engine
+##      start with --engine-count 2 --slot A,B to start two engines
+#py_pid="$(setsid bash -lc "exec python3 server-multi.py --engine-count 1 --slot A --startup-log-level INFO --run-log-level WARNING" & echo $!)"
+#
+#log "server-multi.py pid/pgid: $py_pid"
+
 log "Starting server-multi.py"
-# NOTE start with --engine-count 1 --slot A to start only one engine
-#      start with --engine-count 2 --slot A,B to start two engines
-py_pid="$(setsid bash -lc "exec python3 server-multi.py --engine-count 1 --slot A --startup-log-level INFO --run-log-level WARNING" & echo $!)"
+
+py_pid_file="/tmp/bauklank-server-multi.pid"
+rm -f "$py_pid_file"
+
+setsid bash -lc "
+  exec python3 server-multi.py \
+    --engine-count 1 \
+    --slot A \
+    --startup-log-level INFO \
+    --run-log-level WARNING
+" > >(systemd-cat -t bauklank-server-multi) 2> >(systemd-cat -t bauklank-server-multi -p warning) &
+
+py_pid="$!"
+echo "$py_pid" >"$py_pid_file"
 
 log "server-multi.py pid/pgid: $py_pid"
+
 
 # Optional: small pause so server-multi.py can bind the port
 sleep 0.5
