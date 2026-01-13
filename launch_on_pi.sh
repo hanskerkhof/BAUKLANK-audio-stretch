@@ -109,10 +109,6 @@ chrome_pid="$(sudo -u "$user_name" -H bash -lc "
   # NOTE: keep correct case below (your original was .Xauthority). Use that:
   export XAUTHORITY='$user_home/.Xauthority'
 
-  # D-Bus session bus (prevents "Failed to connect to the bus" spam in Chromium logs)
-  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-  export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
-
 #  setsid chromium-browser \
 #    --kiosk \
 #    --disk-cache-dir=/run/chromium-cache \
