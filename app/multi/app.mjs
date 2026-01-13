@@ -91,8 +91,10 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
     };
 
     const configDefaults = {
-        blockMs: 160,
-        overlap: 1.5,
+        // blockMs: 160,
+        // overlap: 1.5,
+        blockMs: 200,
+        overlap: 1.0,       // <-- big win in cpu
         splitComputation: true
     };
 
