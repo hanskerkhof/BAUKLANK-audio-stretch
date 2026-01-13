@@ -93,7 +93,28 @@ done
 log "Starting server-multi.py"
 # NOTE start with --engine-count 1 --slot A to start only one engine
 #      start with --engine-count 2 --slot A,B to start two engines
-py_pid="$(setsid bash -lc "exec python3 server-multi.py --engine-count 1 --slot A" >/dev/null 2>&1 & echo $!)"
+#py_pid="$(setsid bash -lc "exec python3 server-multi.py --engine-count 1 --slot A --startup-log-level INFO --run-log-level WARNING" & echo $!)"
+
+py_pid="$(
+  setsid bash -lc "
+    exec python3 server-multi.py \
+      --engine-count 1 \
+      --slot A \
+      --startup-log-level INFO \
+      --run-log-level WARNING
+  " & echo \$!
+)"
+
+# NO LOGS:
+#py_pid="$(
+#  setsid bash -lc "
+#    exec python3 server-multi.py \
+#      --engine-count 1 \
+#      --slot A
+#  " >/dev/null 2>&1 & echo \$!
+#)"
+
+
 log "server-multi.py pid/pgid: $py_pid"
 
 # Optional: small pause so server-multi.py can bind the port

@@ -97,6 +97,21 @@ def _parse_args():
         help=f"WebSocket bind port. Default: {WS_PORT}",
     )
 
+    parser.add_argument(
+        "--startup-log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Log level used for startup banner lines (printed once). Default: INFO.",
+    )
+    parser.add_argument(
+        "--run-log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+        help="Log level after startup completes. Default: WARNING (quiet for journal).",
+    )
+
     return parser.parse_args()
 
 
@@ -132,6 +147,23 @@ logging.basicConfig(
 )
 logging.getLogger("websockets").setLevel(logging.INFO)
 log = logging.getLogger("ws-server-multi-both")
+
+
+def _set_run_log_level(level_name: str) -> None:
+    # Make logging quieter/noisier at runtime without changing the format/handlers.
+    try:
+        level = getattr(logging, str(level_name).upper())
+    except Exception:
+        level = logging.WARNING
+
+    logging.getLogger().setLevel(level)
+    log.setLevel(level)
+
+    # Keep third-party libs reasonable (especially when DEBUG is enabled globally)
+    if level <= logging.DEBUG:
+        logging.getLogger("websockets").setLevel(logging.INFO)
+    else:
+        logging.getLogger("websockets").setLevel(logging.WARNING)
 
 
 # =========================
@@ -693,6 +725,10 @@ async def main():
     WS_PORT = args.ws_port
     ENGINE_SLOTS = [args.slot] if args.engine_count == 1 else ["A", "B"]
 
+
+    # Startup banner is printed at a configurable level, then we switch to run log level (quiet by default).
+    _set_run_log_level(args.startup_log_level)
+
     log.info(f"🚀 Multi BOTH Control Server v{SERVER_VERSION_MSG.get('version', '0.0.0')} starting up...")
     log.info(f"🌐 WS on ws://{WS_HOST}:{WS_PORT}")
     log.info(
@@ -705,6 +741,9 @@ async def main():
 
     async with websockets.serve(ws_handler, WS_HOST, WS_PORT):
         log.info("✅ WebSocket server started")
+
+        # After startup, switch to run log level (quiet by default)
+        _set_run_log_level(args.run_log_level)
 
         await asyncio.gather(
             asyncio.create_task(serial_manager_task()),
