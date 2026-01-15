@@ -16,64 +16,29 @@ import serial
 import serial.tools.list_ports
 
 # ============================================================
-# server-multi.py  (BAUKLANK)
+# server-multi-both.py
 #
 # Purpose
 # -------
-# Serial + WebSocket bridge for BAUKLANK Time Pitch Controllers.
+# Single-controller serial bridge that accepts per-channel JSON
+# messages from ONE controller and forwards them over WebSocket
+# tagged as engine A/B.
 #
-# This server:
-#   - Scans serial ports and auto-attaches to a BAUKLANK controller
-#   - Performs a WHOAREYOU handshake to learn:
-#       deviceId, firmware version, device type
-#   - Receives newline-delimited JSON from the controller and forwards it
-#     to connected WebSocket clients (the web app).
-#
-# Supported serial input (newline-delimited JSON)
-# -----------------------------------------------
-# Per-channel "set" messages (A/B) from ONE controller:
-#   {"type":"set","channel":"A","key":"rate","value":0.010}
-#   {"type":"set","channel":"B","key":"volume","value":12}
+# Expected serial input (newline-delimited JSON)
+# ------------------------------------------------
+# {"type":"set","channel":"A","key":"volume","value":7}
+# {"type":"set","channel":"B","key":"volume","value":12}
 #
 # WebSocket output
 # ----------------
-# Forwarded "set" payloads are broadcast as-is (channel is preserved).
-#
-# In addition, the server periodically broadcasts:
-#
-#   controllerStatus:
-#     - controller connected / disconnected state
-#     - deviceId / fw / port info (after handshake)
-#     - inferred encoder traffic status per channel (A/B)
-#
-# Encoder traffic inference (server-only)
-# ---------------------------------------
-# We do NOT modify controller firmware for encoder-online detection.
-# Instead, the server tracks the last time it received:
-#
-#   {"type":"set","channel":"X","key":"rate", ...}
-#
-# If no "rate" messages arrive for a channel for ENCODER_OFFLINE_TIMEOUT_SEC
-# (default: 10s), that channel's encoder is treated as OFFLINE.
-#
-# This yields (inside controllerStatus):
-#   "encoders": {
-#     "timeoutSec": 10.0,
-#     "channels": {
-#       "A": {"online": true,  "ageMs": 120},
-#       "B": {"online": false, "ageMs": null}
-#     }
-#   }
+# Same payload, plus `engine` (A/B). We keep `channel` too.
 #
 # Why this exists
 # ---------------
-# The web app needs one reliable WebSocket stream with:
-#   - live engine control updates ("set")
-#   - controller presence and identity ("controllerStatus")
-#   - encoder traffic visibility per channel (A/B)
-#
+# Your previous server expected a single-engine payload:
+#   {"type":"set","key":"volume","value":7}
+# This server supports BOTH engines from a single controller.
 # ============================================================
-
 
 # =========================
 # Config
@@ -171,16 +136,6 @@ SERIAL_LOG_MAX_KEYS_IN_DIGEST = 10
 
 # ✅ Heartbeat
 HEARTBEAT_INTERVAL_SEC = 60.0
-
-# ✅ Encoder traffic -> online/offline inference (server-side)
-#
-# We mark an encoder "online" for a channel if we've seen at least one
-# {type:"set", key:"rate", channel:"A|B"} message in the last N seconds.
-#
-# This intentionally does NOT require controller firmware changes.
-ENCODER_OFFLINE_TIMEOUT_SEC = 6.0
-ENCODER_STATUS_POLL_SEC = 1.0
-ENCODER_STATUS_INTERVAL_SEC = 1.0
 
 # =========================
 # Logging
@@ -563,57 +518,10 @@ def _list_candidate_ports() -> list[str]:
 CONTROLLER: Optional[ControllerInfo] = None
 SERIAL_TASK: Optional[asyncio.Task] = None
 
-# Last time (monotonic seconds) we observed a controller->server "rate" set for each channel.
-# Used to infer whether an activity encoder is actively sending (traffic seen recently).
-LAST_RATE_RX_MONO: Dict[str, float] = {}
-
-
-def _now_mono() -> float:
-    # Use monotonic time for offline/online detection (immune to system clock changes).
-    return time.monotonic()
-
-
-def _build_encoder_traffic_status() -> dict:
-    """Build per-channel encoder traffic status based on recent 'rate' messages."""
-    now = _now_mono()
-    encoders: dict = {}
-
-    for ch in ENGINE_SLOTS:
-        last = LAST_RATE_RX_MONO.get(ch)
-        if last is None:
-            encoders[ch] = {"online": False, "ageMs": None}
-            continue
-
-        age_ms = int(max(0.0, (now - last)) * 1000.0)
-        online = (now - last) <= ENCODER_OFFLINE_TIMEOUT_SEC
-        encoders[ch] = {"online": online, "ageMs": age_ms}
-
-    return {"timeoutSec": ENCODER_OFFLINE_TIMEOUT_SEC, "channels": encoders}
-
-
-def _format_encoder_channels(channels: dict) -> str:
-    """Human readable one-liner for logs.
-
-    Example: "A=ON age=116ms | B=OFF age=—"
-    """
-    parts: list[str] = []
-    for ch in ENGINE_SLOTS:
-        data = channels.get(ch, {}) if isinstance(channels, dict) else {}
-        online = bool(data.get("online", False))
-        age_ms = data.get("ageMs", None)
-        age_str = "—" if age_ms is None else f"{int(age_ms)}ms"
-        parts.append(f"{ch}={'ON' if online else 'OFF'} age={age_str}")
-    return " | ".join(parts)
-
 
 def current_controller_status() -> dict:
     if not CONTROLLER:
-        return {
-            "type": "controllerStatus",
-            "connected": False,
-            "engines": ENGINE_SLOTS,
-            "encoders": _build_encoder_traffic_status(),
-        }
+        return {"type": "controllerStatus", "connected": False, "engines": ENGINE_SLOTS}
 
     return {
         "type": "controllerStatus",
@@ -622,7 +530,6 @@ def current_controller_status() -> dict:
         "deviceId": CONTROLLER.device_id,
         "fw": CONTROLLER.fw,
         "engines": ENGINE_SLOTS,
-        "encoders": _build_encoder_traffic_status(),
     }
 
 
@@ -640,48 +547,6 @@ async def controller_heartbeat_task():
             log.debug(f"⚠️ controller_heartbeat_task loop error: {e}")
 
         await asyncio.sleep(HEARTBEAT_INTERVAL_SEC)
-
-
-async def encoder_traffic_status_task():
-    """Periodically broadcast controllerStatus updates reflecting encoder traffic/online state.
-
-    We broadcast immediately when an online flag flips (A/B), and also re-broadcast
-    at a low refresh rate so the UI can show ageMs progressing if it wants.
-    """
-    last_online: Optional[Dict[str, bool]] = None
-    last_connected: Optional[bool] = None
-    last_broadcast_mono = 0.0
-
-    while True:
-        try:
-            status = current_controller_status()
-            connected = bool(status.get("connected", False))
-            enc = status.get("encoders", {}).get("channels", {})
-            online = {ch: bool(enc.get(ch, {}).get("online", False)) for ch in ENGINE_SLOTS}
-
-            now = _now_mono()
-            refresh_due = (now - last_broadcast_mono) >= 5.0
-            flipped = (last_online is None) or (online != last_online)
-            controller_changed = (last_connected is None) or (connected != last_connected)
-
-            if flipped or refresh_due or controller_changed:
-                # ✅ Log encoder traffic status so it's visible in your server logs
-                # when the controller disconnects or when encoder online flags flip.
-                log.debug(
-                    "📡 controllerStatus(encoders): controller connected=%s | encoders: %s",
-                    "YES" if connected else "NO",
-                    _format_encoder_channels(enc),
-                )
-
-                await broadcast(status)
-                last_online = online
-                last_connected = connected
-                last_broadcast_mono = now
-
-        except Exception as e:
-            log.debug(f"⚠️ encoder_traffic_status_task loop error: {e}")
-
-        await asyncio.sleep(ENCODER_STATUS_POLL_SEC)
 
 
 def _normalize_set_value(msg: dict) -> None:
@@ -714,18 +579,7 @@ async def serial_port_task(info: ControllerInfo):
 
     log.info(f"🎛️ Controller connected on {port} (deviceId={info.device_id})")
     CONTROLLER = info
-    # Reset encoder traffic timestamps on (re)connect so we don't show stale "online".
-    LAST_RATE_RX_MONO.clear()
     await broadcast(current_controller_status())
-    # Helpful: show initial status in logs (debug level)
-    try:
-        enc = current_controller_status().get("encoders", {}).get("channels", {})
-        log.debug(
-            "📡 controllerStatus(encoders): controller: connected=YES | encoders: %s",
-            _format_encoder_channels(enc),
-        )
-    except Exception:
-        pass
 
     # Digest accumulators
     digest_started = time.time()
@@ -809,12 +663,6 @@ async def serial_port_task(info: ControllerInfo):
 
             _normalize_set_value(msg)
 
-            # Encoder traffic detection:
-            # If we see a rate update for a channel, we consider that channel's encoder "online"
-            # for ENCODER_OFFLINE_TIMEOUT_SEC seconds.
-            if key == "rate":
-                LAST_RATE_RX_MONO[channel] = _now_mono()
-
             if key:
                 last_set_values[key] = msg.get("value")
 
@@ -836,17 +684,6 @@ async def serial_port_task(info: ControllerInfo):
             pass
 
         CONTROLLER = None
-        LAST_RATE_RX_MONO.clear()
-        # Log final status (debug) so disconnect is visible even if you only watch logs.
-        try:
-            enc = current_controller_status().get("encoders", {}).get("channels", {})
-            log.debug(
-                "📡 controllerStatus(encoders): controller: connected=NO | encoders: %s",
-                _format_encoder_channels(enc),
-            )
-        except Exception:
-            pass
-
         await broadcast(current_controller_status())
 
 
@@ -912,7 +749,6 @@ async def main():
             asyncio.create_task(serial_manager_task()),
             asyncio.create_task(machine_status_task()),
             asyncio.create_task(controller_heartbeat_task()),
-            asyncio.create_task(encoder_traffic_status_task()),
         )
 
 

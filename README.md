@@ -363,9 +363,17 @@ Run server.py either from pyCharm or from the command line:
 
     python3 server.py
 
-Serve the frontend from a terminal
+Serve the frontend from a terminal (default 2 engines)
 
     npx http-server app/multi -p 8080 -c-1 -o
+
+To start with one engine:
+
+    npx http-server app/multi -p 8080 -c-1 -o "?engines=1"
+
+
+---
+
 
 https://github.com/Signalsmith-Audio/pitch-time-example-code
 
