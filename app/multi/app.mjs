@@ -236,36 +236,27 @@ function updateControllerStatus(engine, msg) {
     const el = engine.ui.controllerStatus;
     if (!el) return;
 
-    function formatEncoderStatusForEngine(message, engineId) {
-        // Server provides encoder traffic inference inside controllerStatus:
-        // encoders: { timeoutSec, channels: { A:{online,ageMs}, B:{...} } }
-        if (!message || typeof message !== 'object') return null;
-        const enc = message.encoders;
-        if (!enc || typeof enc !== 'object') return null;
-        const channels = enc.channels;
-        if (!channels || typeof channels !== 'object') return null;
-
-        const ch = channels[engineId];
-        if (!ch || typeof ch !== 'object') return null;
-
-        const online = (ch.online === true);
-        const ageMs = (typeof ch.ageMs === 'number') ? ch.ageMs : null;
-        const ageText = (ageMs === null) ? '—' : `${ageMs}ms`;
-        return `encoder ${engineId}: ${online ? 'ON' : 'OFF'} · age ${ageText}`;
-    }
-
     if (msg && msg.connected === true) {
         const deviceId = (typeof msg.deviceId === 'string' && msg.deviceId.length) ? msg.deviceId : 'controller';
         const fw = (typeof msg.fw === 'string' && msg.fw.length) ? msg.fw : '';
         const port = (typeof msg.port === 'string' && msg.port.length) ? msg.port : '';
 
-        const encoderStatus = formatEncoderStatusForEngine(msg, engine.id);
+        // Encoder traffic/fixture info (from controllerStatus.encoders.channels[A|B])
+        const enc = (msg.encoders && msg.encoders.channels && msg.encoders.channels[engine.id]) ? msg.encoders.channels[engine.id] : null;
+        const encOnline = !!(enc && enc.online === true);
+        const encAgeMs = (enc && Number.isFinite(enc.ageMs)) ? Math.max(0, Math.floor(enc.ageMs)) : null;
+        const encAgeStr = (encAgeMs === null) ? '—' : `${encAgeMs}ms`;
+        const encFixture = (enc && typeof enc.fixture === 'string' && enc.fixture.length) ? enc.fixture : null;
+        const encLabel = encFixture ? `${encFixture}` : `encoder ${engine.id}`;
+        const encBits = `${encLabel}: ${encOnline ? 'ON' : 'OFF'} · age ${encAgeStr}`;
+
         const bits = [
             `controller ${engine.id}: ${deviceId}`,
             fw ? `fw ${fw}` : null,
             port ? `port ${port}` : null,
-            encoderStatus
+            encBits,
         ].filter(Boolean);
+
         el.textContent = bits.join(' · ');
         setBadgeState(el, 'ok');
     } else {
@@ -806,8 +797,10 @@ setInterval(() => {
             }
 
             if (msg.type === 'controllerStatus') {
-                const engineId = (typeof msg.engine === 'string' && engines.has(msg.engine)) ? msg.engine : defaultEngineId;
-                updateControllerStatus(engines.get(engineId), msg);
+                // controllerStatus applies to the whole controller (A+B). Update all visible engines.
+                for (const [engineId, engine] of engines.entries()) {
+                    updateControllerStatus(engine, msg);
+                }
                 return;
             }
 

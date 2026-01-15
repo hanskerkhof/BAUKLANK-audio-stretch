@@ -185,6 +185,7 @@ This is intentional:
 * Engine assignment is handled logically (`A`, `B`, …), not physically
 
 If you need deterministic assignment, use:
+> THIS IS OBSOLETE INFO, TODO - PLEASE UPDATE THIS README
 
 ```python
 DEVICE_ID_TO_ENGINE = {

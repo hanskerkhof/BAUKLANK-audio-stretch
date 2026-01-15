@@ -15,12 +15,6 @@ import websockets
 import serial
 import serial.tools.list_ports
 
-# SSOT topology (controllerId -> channel -> encoder fixture name)
-try:
-    from time_pitch_mapping import TIME_PITCH_TOPOLOGY
-except Exception:
-    TIME_PITCH_TOPOLOGY = {}
-
 # ============================================================
 # server-multi.py  (BAUKLANK)
 #
@@ -30,39 +24,56 @@ except Exception:
 #
 # This server:
 #   - Scans serial ports and auto-attaches to a BAUKLANK controller
-#   - Performs a WHOAREYOU handshake to learn: deviceId, firmware version, device type
-#   - Forwards controller JSON over WebSocket to connected web apps
+#   - Performs a WHOAREYOU handshake to learn:
+#       deviceId, firmware version, device type
+#   - Receives newline-delimited JSON from the controller and forwards it
+#     to connected WebSocket clients (the web app).
 #
 # Supported serial input (newline-delimited JSON)
 # -----------------------------------------------
+# Per-channel "set" messages (A/B) from ONE controller:
 #   {"type":"set","channel":"A","key":"rate","value":0.010}
 #   {"type":"set","channel":"B","key":"volume","value":12}
 #
 # WebSocket output
 # ----------------
-#   - Forwards "set" payloads (channel is preserved)
-#   - Broadcasts controllerStatus periodically and on-change
+# Forwarded "set" payloads are broadcast as-is (channel is preserved).
 #
-# controllerStatus includes
-# -------------------------
-#   - controller connected/disconnected + deviceId/fw/port
-#   - encoder traffic status per channel (A/B) inferred from incoming rate messages
-#   - encoder fixture names per channel (from SSOT map: time_pitch_mapping.py)
+# In addition, the server periodically broadcasts:
+#
+#   controllerStatus:
+#     - controller connected / disconnected state
+#     - deviceId / fw / port info (after handshake)
+#     - inferred encoder traffic status per channel (A/B)
 #
 # Encoder traffic inference (server-only)
 # ---------------------------------------
 # We do NOT modify controller firmware for encoder-online detection.
-# Instead, the server tracks last "set rate" seen per channel.
-# If no rate messages arrive for ENCODER_OFFLINE_TIMEOUT_SEC (default: 10s),
-# that channel's encoder is treated as OFFLINE.
+# Instead, the server tracks the last time it received:
 #
-# SSOT topology
-# ------------
-# time_pitch_mapping.py defines controllerId -> channel -> encoder fixture name.
-# server-multi.py reads it directly and attaches the encoder fixture name to
-# controllerStatus, so the frontend can display it without knowing the map.
+#   {"type":"set","channel":"X","key":"rate", ...}
+#
+# If no "rate" messages arrive for a channel for ENCODER_OFFLINE_TIMEOUT_SEC
+# (default: 10s), that channel's encoder is treated as OFFLINE.
+#
+# This yields (inside controllerStatus):
+#   "encoders": {
+#     "timeoutSec": 10.0,
+#     "channels": {
+#       "A": {"online": true,  "ageMs": 120},
+#       "B": {"online": false, "ageMs": null}
+#     }
+#   }
+#
+# Why this exists
+# ---------------
+# The web app needs one reliable WebSocket stream with:
+#   - live engine control updates ("set")
+#   - controller presence and identity ("controllerStatus")
+#   - encoder traffic visibility per channel (A/B)
 #
 # ============================================================
+
 
 # =========================
 # Config
@@ -167,7 +178,7 @@ HEARTBEAT_INTERVAL_SEC = 60.0
 # {type:"set", key:"rate", channel:"A|B"} message in the last N seconds.
 #
 # This intentionally does NOT require controller firmware changes.
-ENCODER_OFFLINE_TIMEOUT_SEC = 10.0
+ENCODER_OFFLINE_TIMEOUT_SEC = 6.0
 ENCODER_STATUS_POLL_SEC = 1.0
 ENCODER_STATUS_INTERVAL_SEC = 1.0
 
@@ -597,21 +608,12 @@ def _format_encoder_channels(channels: dict) -> str:
 
 def current_controller_status() -> dict:
     if not CONTROLLER:
-        return {"type": "controllerStatus", "connected": False, "engines": ENGINE_SLOTS}
-
-    encoders = _build_encoder_traffic_status()
-
-    # Attach SSOT encoder fixture names (if available)
-    try:
-        channels = encoders.get("channels", {}) if isinstance(encoders, dict) else {}
-        ctl_map = TIME_PITCH_TOPOLOGY.get(CONTROLLER.device_id, {}) if isinstance(TIME_PITCH_TOPOLOGY, dict) else {}
-        for ch in ENGINE_SLOTS:
-            if ch not in channels or not isinstance(channels.get(ch), dict):
-                channels[ch] = {"online": False, "ageMs": None}
-            fixture = ctl_map.get(ch) if isinstance(ctl_map, dict) else None
-            channels[ch]["fixture"] = fixture
-    except Exception:
-        pass
+        return {
+            "type": "controllerStatus",
+            "connected": False,
+            "engines": ENGINE_SLOTS,
+            "encoders": _build_encoder_traffic_status(),
+        }
 
     return {
         "type": "controllerStatus",
@@ -620,7 +622,7 @@ def current_controller_status() -> dict:
         "deviceId": CONTROLLER.device_id,
         "fw": CONTROLLER.fw,
         "engines": ENGINE_SLOTS,
-        "encoders": encoders,
+        "encoders": _build_encoder_traffic_status(),
     }
 
 
@@ -719,7 +721,7 @@ async def serial_port_task(info: ControllerInfo):
     try:
         enc = current_controller_status().get("encoders", {}).get("channels", {})
         log.debug(
-            "📡 controllerStatus(encoders): controller connected=YES | encoders: %s",
+            "📡 controllerStatus(encoders): controller: connected=YES | encoders: %s",
             _format_encoder_channels(enc),
         )
     except Exception:
@@ -839,7 +841,7 @@ async def serial_port_task(info: ControllerInfo):
         try:
             enc = current_controller_status().get("encoders", {}).get("channels", {})
             log.debug(
-                "📡 controllerStatus(encoders): controller connected=NO | encoders: %s",
+                "📡 controllerStatus(encoders): controller: connected=NO | encoders: %s",
                 _format_encoder_channels(enc),
             )
         except Exception:
