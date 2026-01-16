@@ -25,6 +25,7 @@
 
 html, body {
     height: 100%;
+    padding-top: var(--statusbar-h);
 }
 
 body {
@@ -71,6 +72,12 @@ body[data-app="multi"] {
     display: grid;
     grid-template-columns: 1fr 1fr;
     height: 100vh;
+}
+
+/* Make room for the fixed top status bar */
+#channels {
+    /*padding-top: var(--statusbar-h);*/
+    /*height: calc(100vh - var(--statusbar-h));*/
 }
 
 /* --- Channel panel ------------------------------------------------------- */
@@ -345,14 +352,43 @@ header, .header, .topbar {
 }
 
 /*   Status bar (bottom) — affects ONLY status UI */
-
+/* --- Status bar (top, hard capped to 1024px) ----------------------------- */
 #status-bar {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+
     display: flex;
+    align-items: center;
     gap: 10px;
+
+    width: min(1024px, 100vw);
+    max-width: 1024px;
+
+    height: var(--statusbar-h);
+    padding: 8px 10px;
+
+    background: rgba(0, 0, 0, 0.55);
+    color: rgba(255, 255, 255, 0.92);
+
+    overflow: hidden;      /* 🔒 never exceed width */
     pointer-events: none;
+    z-index: 999;
 }
 
+/*#status-bar {*/
+/*    display: flex;*/
+/*    gap: 10px;*/
+/*    pointer-events: none;*/
+/*}*/
+
 #status-bar > div {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* 1) Keep the whole controls grid to half screen (512px) */
