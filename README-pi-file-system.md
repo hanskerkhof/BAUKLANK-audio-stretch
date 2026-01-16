@@ -404,7 +404,7 @@ You should see the directory recreated.
 
 Then run Chromium and check:
 
-    iotop -oPa
+    sudo iotop -oPa
 
 
 Chromium’s write activity should now be near zero, except for occasional tiny profile updates.
@@ -872,6 +872,8 @@ For example, change:
 to:
 
     PARTUUID=1c18c4e4-01  /boot/firmware  vfat  defaults,ro,noatime  0  2
+
+> NOTE Leave the ```PARTUUID``` intact!
 
 Then reboot:
 
