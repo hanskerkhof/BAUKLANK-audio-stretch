@@ -65,6 +65,19 @@ function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
 }
 
+function setVolumeFromPercent(engine, value, fallback = 100) {
+    const v = clamp(toFiniteNumber(value, fallback), 0, 100) / 100;
+    engine.controlValues.volume = v;
+}
+
+function setVolumeNormalized(engine, value) {
+    const n = toFiniteNumber(value, NaN);
+    if (!Number.isFinite(n)) return false;
+    const normalized = (n <= 1 && n >= 0) ? n : (n / 100);
+    engine.controlValues.volume = clamp(normalized, 0, 1);
+    return true;
+}
+
 // ------------------------------------------------------------
 // LocalStorage helpers (scoped per engine)
 // ------------------------------------------------------------
@@ -191,7 +204,8 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
         },
 
         // ui state
-        currentFileName: ''
+        currentFileName: '',
+        lastUiPaintMs: 0
     };
 }
 
@@ -389,8 +403,6 @@ function hideProcessing(engine) {
         }
     }
 
-    let lastUiPaintMs = 0;
-
     function controlsChanged(engine, scheduleAhead, opts = {}) {
         // Persist controls (selected ones)
 // HK - Temp out-commeted to check if i can lower cpu
@@ -436,8 +448,11 @@ function hideProcessing(engine) {
         if (!engine.stretch) return;
 
         // Apply loop bounds
-        const loopStart = clamp(toFiniteNumber(engine.controlValues.loopStart, 0), 0, engine.audioDuration);
-        const loopEnd = clamp(toFiniteNumber(engine.controlValues.loopEnd, engine.audioDuration), 0, engine.audioDuration);
+        let loopStart = clamp(toFiniteNumber(engine.controlValues.loopStart, 0), 0, engine.audioDuration);
+        let loopEnd = clamp(toFiniteNumber(engine.controlValues.loopEnd, engine.audioDuration), 0, engine.audioDuration);
+        if (loopStart > loopEnd) {
+            [loopStart, loopEnd] = [loopEnd, loopStart];
+        }
 
         // Apply scheduling params (rate/pitch/etc.)
         const rate = clamp(toFiniteNumber(engine.controlValues.rate, 0.001), 0.00001, 2);
@@ -466,31 +481,29 @@ function hideProcessing(engine) {
             outputTime: audioContext.currentTime + scheduleOffset
         });
 
-          const now = performance.now();
-          if (now - lastUiPaintMs > 250) {  // 4Hz UI paint max
-            lastUiPaintMs = now;
-            // Reflect in UI block here
-            // Reflect in UI
-           if (engine.ui.controlsRoot) {
-            engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
-                const key = input.dataset.key;
-                if (!key) return;
+        const now = performance.now();
+        if (now - engine.lastUiPaintMs > 250) {  // 4Hz UI paint max
+            engine.lastUiPaintMs = now;
+            if (engine.ui.controlsRoot) {
+                engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
+                    const key = input.dataset.key;
+                    if (!key) return;
 
-                if (key === 'volumePercent') {
-                    const v = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
-                    const pct = Math.round(v * 100);
-                    if (input.type === 'checkbox') return;
-                    input.value = String(pct);
-                    return;
-                }
+                    if (key === 'volumePercent') {
+                        const v = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
+                        const pct = Math.round(v * 100);
+                        if (input.type === 'checkbox') return;
+                        input.value = String(pct);
+                        return;
+                    }
 
-                if (key in engine.controlValues) {
-                    if (input.type === 'checkbox') input.checked = !!engine.controlValues[key];
-                    else input.value = String(engine.controlValues[key]);
-                }
-            });
+                    if (key in engine.controlValues) {
+                        if (input.type === 'checkbox') input.checked = !!engine.controlValues[key];
+                        else input.value = String(engine.controlValues[key]);
+                    }
+                });
+            }
         }
-          } // if (now - lastUiPaintMs > 250)
     }
 
     // Apply incoming control/config updates, scoped to engine (WS/serial)
@@ -498,17 +511,13 @@ function hideProcessing(engine) {
         if (!engine || !key) return;
 
         if (key === 'volume') {
-            const n = toFiniteNumber(value, NaN);
-            if (!Number.isFinite(n)) return;
-            const v01 = clamp(n, 0, 100) / 100;
-            engine.controlValues.volume = v01;
+            if (!setVolumeNormalized(engine, value)) return;
             controlsChanged(engine, /*scheduleAhead=*/true);
             return;
         }
 
         if (key === 'volumePercent') {
-            const v = clamp(toFiniteNumber(value, 100), 1, 100) / 100;
-            engine.controlValues.volume = v;
+            setVolumeFromPercent(engine, value, 100);
             controlsChanged(engine, /*scheduleAhead=*/true);
             return;
         }
@@ -625,7 +634,7 @@ function hideProcessing(engine) {
                 if (!isCheckbox && !Number.isFinite(value)) return;
 
                 if (key === 'volumePercent') {
-                    engine.controlValues.volume = clamp(value, 1, 100) / 100;
+                    setVolumeFromPercent(engine, value, 100);
                     controlsChanged(engine);
                     return;
                 }
@@ -697,20 +706,20 @@ function hideProcessing(engine) {
             controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
         };
 
-const PLAYBACK_UI_HZ = 5;           // 5Hz instead of 20Hz
-const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
+        const PLAYBACK_UI_HZ = 5; // 5Hz instead of 20Hz
+        const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
 
-setInterval(() => {
-  if (!engine.ui.playback) return;
+        setInterval(() => {
+            if (!engine.ui.playback) return;
 
-  // max rarely changes; only update when duration changes
-  const dur = engine.audioDuration || 1;
-  if (engine.ui.playback.max != dur) engine.ui.playback.max = dur;
+            // max rarely changes; only update when duration changes
+            const dur = engine.audioDuration || 1;
+            if (engine.ui.playback.max != dur) engine.ui.playback.max = dur;
 
-  if (!playbackHeld && engine.stretch && engine.controlValues.active) {
-    engine.ui.playback.value = engine.stretch.inputTime;
-  }
-}, PLAYBACK_UI_MS);
+            if (!playbackHeld && engine.stretch && engine.controlValues.active) {
+                engine.ui.playback.value = engine.stretch.inputTime;
+            }
+        }, PLAYBACK_UI_MS);
 
         // // keep playback slider updated
         // setInterval(() => {
@@ -757,7 +766,8 @@ setInterval(() => {
     let ws;
 
     function connectWs() {
-        const url = `ws://${location.host.replace(/:\d+$/, '')}:8765`;
+        const protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
+        const url = `${protocol}://${location.host.replace(/:\d+$/, '')}:8765`;
         updateWsStatus('ws: connecting…', 'warn');
 
         ws = new WebSocket(url);
@@ -818,4 +828,3 @@ setInterval(() => {
     }
 
 })();
-
