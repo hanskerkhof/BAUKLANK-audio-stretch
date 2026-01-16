@@ -52,7 +52,6 @@ function getRequestedEngineSlots() {
 }
 
 
-
 // ------------------------------------------------------------
 // Small utilities (guards against NaN / non-finite values)
 // ------------------------------------------------------------
@@ -132,7 +131,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
 
     // Load persisted values (per engine)
     const controlValues = {...controlDefaults};
-    if(LOAD_CONFIG_FROM_LOCAL_STORAGE) {
+    if (LOAD_CONFIG_FROM_LOCAL_STORAGE) {
         for (const k of Object.keys(controlDefaults)) {
             const v = loadFromLocalStorage(engineId, k, controlDefaults[k]);
             controlValues[k] = v;
@@ -140,7 +139,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
     }
 
     const configValues = {...configDefaults};
-    if(LOAD_CONFIG_FROM_LOCAL_STORAGE) {
+    if (LOAD_CONFIG_FROM_LOCAL_STORAGE) {
         for (const k of Object.keys(configDefaults)) {
             const v = loadFromLocalStorage(engineId, k, configDefaults[k]);
             configValues[k] = v;
@@ -207,8 +206,47 @@ function setBadgeState(selectorOrEl, state) {
 function updateWsStatus(text, state) {
     const el = $('#ws-status');
     if (!el) return;
-    el.textContent = text;
+
+    const textEl = el.querySelector('.ws-text');
+    if (textEl) textEl.textContent = text;
+    else el.textContent = text;
+
     setBadgeState(el, state);
+}
+
+
+// function updateWsStatus(text, state) {
+//     const el = $('#ws-status');
+//     if (!el) return;
+//
+//     const textEl = el.querySelector('.ws-text');
+//     if (textEl) textEl.textContent = text;
+//     else el.textContent = text;
+//
+//     setBadgeState(el, state);
+// }
+
+function pulseWsActivity() {
+    const el = $('#ws-status');
+    if (!el) return;
+
+    // Restart animation even if messages arrive fast
+    el.classList.remove('ws-pulse');
+    void el.offsetWidth; // force reflow
+    el.classList.add('ws-pulse');
+
+    window.clearTimeout(pulseWsActivity._t);
+    pulseWsActivity._t = window.setTimeout(() => {
+        el.classList.remove('ws-pulse');
+    }, 260);
+}
+
+function updateWsRateText(text) {
+    const el = $('#ws-status');
+    if (!el) return;
+    const rateEl = el.querySelector('.ws-rate');
+    if (!rateEl) return;
+    rateEl.textContent = text;
 }
 
 function updateServerVersion(version) {
@@ -241,13 +279,15 @@ function updateControllerStatus(engine, msg) {
         const fw = (typeof msg.fw === 'string' && msg.fw.length) ? msg.fw : '';
         const port = (typeof msg.port === 'string' && msg.port.length) ? msg.port : '';
 
-        // Encoder traffic/fixture info (from controllerStatus.encoders.channels[A|B])
+        // Encoder traffic/deviceId info (from controllerStatus.encoders.channels[A|B])
         const enc = (msg.encoders && msg.encoders.channels && msg.encoders.channels[engine.id]) ? msg.encoders.channels[engine.id] : null;
         const encOnline = !!(enc && enc.online === true);
         const encAgeMs = (enc && Number.isFinite(enc.ageMs)) ? Math.max(0, Math.floor(enc.ageMs)) : null;
         const encAgeStr = (encAgeMs === null) ? '—' : `${encAgeMs}ms`;
-        const encFixture = (enc && typeof enc.fixture === 'string' && enc.fixture.length) ? enc.fixture : null;
-        const encLabel = encFixture ? `${encFixture}` : `encoder ${engine.id}`;
+        // Prefer new name: deviceId. Fallback to legacy: fixture (for older servers during rollout).
+        const encDeviceId = (enc && typeof enc.deviceId === 'string' && enc.deviceId.length) ? enc.deviceId : null;
+        const encFixtureLegacy = (enc && typeof enc.fixture === 'string' && enc.fixture.length) ? enc.fixture : null;
+        const encLabel = (encDeviceId || encFixtureLegacy) ? `${encDeviceId || encFixtureLegacy}` : `encoder ${engine.id}`;
         const encBits = `${encLabel}: ${encOnline ? 'ON' : 'OFF'} · age ${encAgeStr}`;
 
         const bits = [
@@ -466,31 +506,31 @@ function hideProcessing(engine) {
             outputTime: audioContext.currentTime + scheduleOffset
         });
 
-          const now = performance.now();
-          if (now - lastUiPaintMs > 250) {  // 4Hz UI paint max
+        const now = performance.now();
+        if (now - lastUiPaintMs > 250) {  // 4Hz UI paint max
             lastUiPaintMs = now;
             // Reflect in UI block here
             // Reflect in UI
-           if (engine.ui.controlsRoot) {
-            engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
-                const key = input.dataset.key;
-                if (!key) return;
+            if (engine.ui.controlsRoot) {
+                engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
+                    const key = input.dataset.key;
+                    if (!key) return;
 
-                if (key === 'volumePercent') {
-                    const v = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
-                    const pct = Math.round(v * 100);
-                    if (input.type === 'checkbox') return;
-                    input.value = String(pct);
-                    return;
-                }
+                    if (key === 'volumePercent') {
+                        const v = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
+                        const pct = Math.round(v * 100);
+                        if (input.type === 'checkbox') return;
+                        input.value = String(pct);
+                        return;
+                    }
 
-                if (key in engine.controlValues) {
-                    if (input.type === 'checkbox') input.checked = !!engine.controlValues[key];
-                    else input.value = String(engine.controlValues[key]);
-                }
-            });
-        }
-          } // if (now - lastUiPaintMs > 250)
+                    if (key in engine.controlValues) {
+                        if (input.type === 'checkbox') input.checked = !!engine.controlValues[key];
+                        else input.value = String(engine.controlValues[key]);
+                    }
+                });
+            }
+        } // if (now - lastUiPaintMs > 250)
     }
 
     // Apply incoming control/config updates, scoped to engine (WS/serial)
@@ -697,20 +737,20 @@ function hideProcessing(engine) {
             controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
         };
 
-const PLAYBACK_UI_HZ = 5;           // 5Hz instead of 20Hz
-const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
+        const PLAYBACK_UI_HZ = 5;           // 5Hz instead of 20Hz
+        const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
 
-setInterval(() => {
-  if (!engine.ui.playback) return;
+        setInterval(() => {
+            if (!engine.ui.playback) return;
 
-  // max rarely changes; only update when duration changes
-  const dur = engine.audioDuration || 1;
-  if (engine.ui.playback.max != dur) engine.ui.playback.max = dur;
+            // max rarely changes; only update when duration changes
+            const dur = engine.audioDuration || 1;
+            if (engine.ui.playback.max != dur) engine.ui.playback.max = dur;
 
-  if (!playbackHeld && engine.stretch && engine.controlValues.active) {
-    engine.ui.playback.value = engine.stretch.inputTime;
-  }
-}, PLAYBACK_UI_MS);
+            if (!playbackHeld && engine.stretch && engine.controlValues.active) {
+                engine.ui.playback.value = engine.stretch.inputTime;
+            }
+        }, PLAYBACK_UI_MS);
 
         // // keep playback slider updated
         // setInterval(() => {
@@ -756,22 +796,50 @@ setInterval(() => {
     // ------------------------------------------------------------
     let ws;
 
+    let wsMsgCountThisSecond = 0;
+    let wsRateTimer = null;
+
+    function stopWsRateTimer() {
+        if (wsRateTimer !== null) {
+            clearInterval(wsRateTimer);
+            wsRateTimer = null;
+        }
+    }
+
+    function startWsRateTimer() {
+        if (wsRateTimer !== null) return;
+        wsRateTimer = setInterval(() => {
+            const n = wsMsgCountThisSecond;
+            wsMsgCountThisSecond = 0;
+            updateWsRateText(`${n} msg/s`);
+        }, 1000);
+    }
+
+
     function connectWs() {
         const url = `ws://${location.host.replace(/:\d+$/, '')}:8765`;
         updateWsStatus('ws: connecting…', 'warn');
+        updateWsRateText('— msg/s');
 
         ws = new WebSocket(url);
 
         ws.onopen = () => {
             updateWsStatus('ws: connected', 'ok');
             // Optional: let the server know which engine slots we are running
+wsMsgCountThisSecond = 0;
+updateWsRateText('0 msg/s');
+startWsRateTimer();
             try {
                 ws.send(JSON.stringify({type: 'hello', engineSlots: requestedSlots}));
-            } catch {}
+            } catch {
+            }
         };
 
         ws.onclose = () => {
             updateWsStatus('ws: disconnected', 'warn');
+stopWsRateTimer();
+wsMsgCountThisSecond = 0;
+updateWsRateText('— msg/s');
             setTimeout(connectWs, 1000);
         };
 
@@ -780,12 +848,18 @@ setInterval(() => {
         };
 
         ws.onmessage = (evt) => {
+
+wsMsgCountThisSecond++;
+pulseWsActivity();
+
             let msg;
             try {
                 msg = JSON.parse(evt.data);
             } catch {
                 return;
             }
+
+            pulseWsActivity();
 
             if (msg.type === 'serverVersion' && typeof msg.version === 'string') {
                 updateServerVersion(msg.version);

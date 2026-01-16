@@ -47,7 +47,12 @@
 <div id="status-bar">
     <div id="server-version">server: v…</div>
     <div id="machine-status">machine: …</div>
-    <div id="ws-status">ws: disconnected</div>
+    <div id="ws-status">
+        <span class="ws-dot" aria-hidden="true"></span>
+        <span class="ws-text">ws: disconnected</span>
+        <span class="ws-rate">— msg/s</span>
+    </div>
+    <!--    <div id="ws-status">ws: disconnected</div>-->
 </div>
 
 <div id="channels">
@@ -313,40 +318,40 @@
 </div>
 
 <script>
-  // ============================================================
-  // BAUKLANK BOOT CONFIG (default: 2 engines)
-  //
-  // URL usage:
-  //   index.html?engines=2                (default)
-  //   index.html?engines=1&slot=A
-  //   index.html?engines=1&slot=B
-  //
-  // Exposes:
-  //   window.BAUKLANK_BOOT = { engineCount, engineSlots, slot }
-  //
-  // Also removes unused channel DOM so app.mjs won't bind UI for it.
-  // ============================================================
-  (function () {
-    const params = new URLSearchParams(location.search);
+    // ============================================================
+    // BAUKLANK BOOT CONFIG (default: 2 engines)
+    //
+    // URL usage:
+    //   index.html?engines=2                (default)
+    //   index.html?engines=1&slot=A
+    //   index.html?engines=1&slot=B
+    //
+    // Exposes:
+    //   window.BAUKLANK_BOOT = { engineCount, engineSlots, slot }
+    //
+    // Also removes unused channel DOM so app.mjs won't bind UI for it.
+    // ============================================================
+    (function () {
+        const params = new URLSearchParams(location.search);
 
-    const engineCount = (params.get('engines') === '1') ? 1 : 2; // ✅ default = 2
-    const slotParam = (params.get('slot') || 'A').toUpperCase();
-    const slot = (slotParam === 'B') ? 'B' : 'A';
+        const engineCount = (params.get('engines') === '1') ? 1 : 2; // ✅ default = 2
+        const slotParam = (params.get('slot') || 'A').toUpperCase();
+        const slot = (slotParam === 'B') ? 'B' : 'A';
 
-    const engineSlots = (engineCount === 1) ? [slot] : ['A', 'B'];
+        const engineSlots = (engineCount === 1) ? [slot] : ['A', 'B'];
 
-    window.BAUKLANK_BOOT = { engineCount, engineSlots, slot };
+        window.BAUKLANK_BOOT = {engineCount, engineSlots, slot};
 
-    // Remove DOM for any channel we don't want
-    document.querySelectorAll('#channels .channel[data-engine]').forEach((el) => {
-      const engine = (el.getAttribute('data-engine') || '').toUpperCase();
-      if (!engineSlots.includes(engine)) el.remove();
-    });
+        // Remove DOM for any channel we don't want
+        document.querySelectorAll('#channels .channel[data-engine]').forEach((el) => {
+            const engine = (el.getAttribute('data-engine') || '').toUpperCase();
+            if (!engineSlots.includes(engine)) el.remove();
+        });
 
-    // Optional: make it visible which mode we are running
-    const modeLabel = (engineCount === 1) ? `Single ${slot}` : 'Multiple';
-    document.title = `BAUKLANK · Stretch Controller (${modeLabel})`;
-  })();
+        // Optional: make it visible which mode we are running
+        const modeLabel = (engineCount === 1) ? `Single ${slot}` : 'Multiple';
+        document.title = `BAUKLANK · Stretch Controller (${modeLabel})`;
+    })();
 </script>
 
 <script type="module" src="app.mjs"></script>
