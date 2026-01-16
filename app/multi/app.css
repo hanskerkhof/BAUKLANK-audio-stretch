@@ -7,21 +7,20 @@
    ========================================================================== */
 
 /* --- Reset / base -------------------------------------------------------- */
-:root {
-    --ui-gap: 10px;
-    --ui-pad: 10px;
-    --header-pad-y: 8px;
-    --header-pad-x: 10px;
-    --transport-pad-y: 8px;
-    --transport-pad-x: 10px;
 
-    --statusbar-h: 48px;
+:root {
+    --border: rgba(0, 0, 0, 0.20);
+    --header-pad-x: 10px;
+    --header-pad-y: 8px;
+    --muted: rgba(0, 0, 0, 0.55);
     --panel-bg: rgba(0, 0, 0, 0.08);
     --panel-bg-strong: rgba(0, 0, 0, 0.18);
-
-    --border: rgba(0, 0, 0, 0.20);
+    --statusbar-h: 48px;
     --text: rgba(0, 0, 0, 0.80);
-    --muted: rgba(0, 0, 0, 0.55);
+    --transport-pad-x: 10px;
+    --transport-pad-y: 8px;
+    --ui-gap: 10px;
+    --ui-pad: 10px;
 }
 
 html, body {
@@ -29,51 +28,60 @@ html, body {
 }
 
 body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden; /* Important: scroll inside channel panels, not the whole page */
     color: var(--text);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
 }
 
-/* Some builds include dist.css; keep this minimal but robust. */
 * {
     box-sizing: border-box;
 }
 
 /* --- Two channel layout -------------------------------------------------- */
+
 /*
   Your multi index.html is already in 2 columns. This CSS makes it explicit and
   ensures the top starts at y=0 (no slack).
 */
-.multi-grid {
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+
+/* Hard cap the app width to 1024, center it on larger screens */
+
+.multi-grid,
+body.multi,
+body[data-app="multi"],
+#channels, #main, .channels, .main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 auto;
+    max-width: 1024px;
+    width: min(1024px, 100vw);
 }
 
 /* If your HTML uses body as the grid container */
+
 body.multi,
 body[data-app="multi"] {
-    height: 100vh;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    height: 100vh;
 }
 
-/* Fallback: if index.html uses #channels or #main wrapper */
 #channels, #main, .channels, .main {
-    height: 100vh;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    height: 100vh;
 }
 
 /* --- Channel panel ------------------------------------------------------- */
+
 .channel {
+    border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Allows internal scroll areas to work */
-    border-left: 1px solid var(--border);
-    width: 512px;
+    min-height: 0;
+    min-width: 0;
+    width: auto;
 }
 
 .channel:first-child {
@@ -81,45 +89,48 @@ body[data-app="multi"] {
 }
 
 /* Top header (CHANNEL A / CHANNEL B) */
+
 .channel-header {
-    margin: 0; /* kills top slack */
-    padding: var(--header-pad-y) var(--header-pad-x);
     background: var(--panel-bg-strong);
     border-bottom: 1px solid var(--border);
+    margin: 0;
+    padding: var(--header-pad-y) var(--header-pad-x);
 }
 
 .channel-header h1,
 .channel-header h2,
 .channel-header .title,
 .channel-header .channel-title {
-    margin: 0;
-    padding: 0;
     font-size: 18px;
     letter-spacing: 0.02em;
+    margin: 0;
+    padding: 0;
 }
 
 /* Controller status line under the header */
+
 .channel-subheader,
 .controller-status,
 .status-line {
-    padding: 4px var(--header-pad-x);
     background: var(--panel-bg-strong);
     border-bottom: 1px solid var(--border);
     color: var(--muted);
     font-size: 10px;
+    padding: 4px var(--header-pad-x);
 }
 
 /* Filename line under the transport (per channel) */
+
 .channel-filename {
-    padding: 4px var(--header-pad-x);
     background: var(--panel-bg-strong);
     border-bottom: 1px solid var(--border);
     color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
     font-size: 12px;
     line-height: 1.2;
     overflow-wrap: anywhere;
+    padding: 4px var(--header-pad-x);
     word-break: break-word;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 @media (max-height: 600px) {
@@ -130,34 +141,17 @@ body[data-app="multi"] {
 }
 
 /* --- Transport row: play + slider + upload on ONE line ------------------- */
-/* We target the actual controls by id patterns you already use. */
+
 .transport,
 .channel-transport,
 .player-row {
-    display: flex;
-    /*align-items: center;*/
-    /*gap: var(--ui-gap);*/
-    /*padding: var(--transport-pad-y) var(--transport-pad-x);*/
     background: var(--panel-bg-strong);
     border-bottom: 1px solid var(--border);
+    display: flex;
 }
 
-/*!* Buttons and slider in the transport row *!*/
-/*.transport button,*/
-/*.channel-transport button,*/
-/*.player-row button {*/
-/*    height: 40px;*/
-/*    min-width: 64px;*/
-/*}*/
-
-/*.transport input[type="range"],*/
-/*.channel-transport input[type="range"],*/
-/*.player-row input[type="range"] {*/
-/*    flex: 1;*/
-/*    min-width: 120px;*/
-/*}*/
-
 /* If your HTML places these three elements directly (ids per engine) */
+
 #playstop-A, #playstop-B,
 #upload-A, #upload-B {
     height: 40px;
@@ -170,26 +164,28 @@ body[data-app="multi"] {
 }
 
 /* If your upload button is a label styled as button */
+
 label.button,
 label.btn {
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    height: 40px;
-    min-width: 64px;
     cursor: pointer;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    min-width: 64px;
 }
 
 /* --- Controls area: scroll inside, so volume/pan always reachable -------- */
+
 .controls,
 .channel-controls {
-    flex: 1;
-    min-height: 0; /* required for overflow scroll in flex column */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: var(--ui-pad);
     background: rgba(255, 255, 255, 0.35);
-    padding-bottom: calc(var(--ui-pad) + var(--statusbar-h)); /* keep status bar from covering last controls */
+    flex: 1;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    padding: var(--ui-pad);
+    padding-bottom: calc(var(--ui-pad) + var(--statusbar-h));
 }
 
 .controls-row {
@@ -199,24 +195,12 @@ label.btn {
 }
 
 .controls-row label {
-    /*background: #fff8f8;*/
     white-space: nowrap;
     word-break: normal;
-    /*padding-right: 8px;*/
-
 }
 
-/*!* Your multi app uses #controls-A / #controls-B *!*/
-/*#controls-A, #controls-B {*/
-/*    flex: 1;*/
-/*    min-height: 0;*/
-/*    overflow-y: auto;*/
-/*    -webkit-overflow-scrolling: touch;*/
-/*    padding: var(--ui-pad);*/
-/*    padding-bottom: calc(var(--ui-pad) + var(--statusbar-h));*/
-/*}*/
-
 /* Reduce vertical waste in control rows if they’re using grid */
+
 .controls .row,
 .controls .control-row,
 .channel-controls .row,
@@ -227,6 +211,7 @@ label.btn {
 }
 
 /* Inputs more compact but readable */
+
 input[type="number"],
 input[type="text"] {
     height: 34px;
@@ -234,45 +219,49 @@ input[type="text"] {
 }
 
 /* Keep reset buttons small */
+
 .reset-btn {
-    width: 28px;
     height: 28px;
+    width: 28px;
 }
 
 /* --- Status bar at the bottom ------------------------------------------- */
-/* Your UI shows server/machine/ws badges. Make sure it doesn’t push content. */
+
 .statusbar,
 #statusbar,
 .status-row,
 footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: var(--statusbar-h);
-    display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
     background: rgba(0, 0, 0, 0.55);
+    bottom: 0;
     color: rgba(255, 255, 255, 0.92);
+    display: flex;
+    gap: 10px;
+    height: var(--statusbar-h);
+    left: 50%;
+    max-width: 1024px;
+    overflow: hidden;
+    padding: 8px 10px;
+    position: fixed;
+    transform: translateX(-50%);
+    width: min(1024px, 100vw);
     z-index: 999;
 }
 
 /* Badge chips */
+
 .badge,
 #server-version,
 #machine-status,
 #ws-status {
-    display: inline-flex;
     align-items: center;
-    padding: 6px 10px;
-    border-radius: 10px;
     background: rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    display: inline-flex;
+    padding: 6px 10px;
     white-space: nowrap;
 }
 
-/* Optional: data-state coloring (you already use dataset.state in JS) */
 #ws-status[data-state="ok"],
 #server-version[data-state="ok"],
 #machine-status[data-state="ok"] {
@@ -292,15 +281,16 @@ footer {
 }
 
 /* --- Compact mode for 1024x600 ------------------------------------------ */
+
 @media (max-height: 600px) {
     :root {
+        --header-pad-x: 8px;
+        --header-pad-y: 4px;
+        --statusbar-h: 44px;
+        --transport-pad-x: 8px;
+        --transport-pad-y: 4px;
         --ui-gap: 8px;
         --ui-pad: 8px;
-        --header-pad-y: 4px;
-        --header-pad-x: 8px;
-        --transport-pad-y: 4px;
-        --transport-pad-x: 8px;
-        --statusbar-h: 44px;
     }
 
     .channel-header h1,
@@ -332,327 +322,127 @@ footer {
     }
 
     .reset-btn {
-        width: 26px;
         height: 26px;
+        width: 26px;
     }
 }
 
 /* --- Optional: if your page had a top padding from dist.css -------------- */
+
 header, .header, .topbar {
     margin: 0;
     padding-top: 0;
 }
 
 /* Status bits inside each channel */
+
 .channel-status {
     display: flex;
-    gap: 0.75rem;
     flex-wrap: wrap;
-    opacity: 0.9;
     font-size: 0.9em;
+    gap: 0.75rem;
+    opacity: 0.9;
 }
 
-/*#start-overlay {*/
-/*    position: fixed;*/
-/*    top: 0;*/
-/*    left: 0;*/
-/*    height: 100vh;*/
-/*    width: 100vw;*/
-/*    display: flex;*/
-/*    flex-direction: column;*/
-/*    z-index: 100;*/
-/*}*/
-
-/*button {*/
-/*    justify-content: center;*/
-/*    align-items: center;*/
-/*    flex-grow: 1;*/
-/*    font: inherit;*/
-/*}*/
-
-/*:root {*/
-/*    font-size: calc(min(12pt, 4.3vh));*/
-/*}*/
-
-/*body {*/
-/*    margin: 0;*/
-/*    padding: 0;*/
-/*    position: fixed;*/
-/*    height: 100vh;*/
-/*    width: 100vw;*/
-/*    max-height: 100vh;*/
-/*    max-width: 100vw;*/
-/*    display: grid;*/
-/*    grid-template-areas: "playstop playback upload" "controls controls controls" "scope scope scope";*/
-/*    grid-template-columns: 3.5rem 1fr 6rem;*/
-/*    grid-template-rows: max-content 2fr 6rem;*/
-/*}*/
-
-/*.controls {*/
-/*    grid-area: controls;*/
-/*    display: grid;*/
-
-/*    !* was: max-content 1fr max-content *!*/
-/*    grid-template-columns: max-content max-content 1fr max-content;*/
-
-/*    grid-auto-rows: max-content;*/
-/*    padding: 1rem;*/
-/*}*/
-
-/*!*.controls {*!*/
-/*!*    grid-area: controls;*!*/
-/*!*    display: grid;*!*/
-/*!*    grid-template-columns: max-content 1fr max-content;*!*/
-/*!*    grid-auto-rows: max-content;*!*/
-/*!*    padding: 1rem;*!*/
-/*!*    !* Disabled HK *!*!*/
-/*!*    !*align-content: space-evenly;*!*!*/
-/*!*}*!*/
-
-/*.controls label {*/
-/*    grid-column: 1;*/
-/*    text-align: right;*/
-/*    padding-right: 1ex;*/
-/*}*/
-
-/*.controls .reset-btn {*/
-/*    grid-column: 2;*/
-/*}*/
-
-/*.controls input[type=range],*/
-/*.controls input[type=checkbox],*/
-/*.controls > div {*/
-/*    grid-column: 3;*/
-/*}*/
-
-/*.controls input[type=number] {*/
-/*    grid-column: 4;*/
-/*}*/
-
-/*!*.controls input[type=range], .controls input[type=checkbox] {*!*/
-/*!*    grid-column: 2;*!*/
-/*!*    font: inherit;*!*/
-/*!*    flex-grow: 0.25;*!*/
-/*!*}*!*/
-
-/*!*.controls input[type=range] {*!*/
-/*!*    flex-grow: 1;*!*/
-/*!*}*!*/
-
-/*!*.controls input[type=number] {*!*/
-/*!*    grid-column: 3;*!*/
-/*!*    font: inherit;*!*/
-/*!*}*!*/
-
-/*#scope {*/
-/*    grid-area: scope;*/
-/*    width: 100%;*/
-/*    height: 6rem;*/
-/*    max-height: 100%;*/
-/*    border: none;*/
-/*}*/
-
-/*#playstop {*/
-/*    grid-area: playstop;*/
-/*}*/
-
-/*#playback {*/
-/*    grid-area: playback;*/
-/*    height: 100%;*/
-/*    position: relative;*/
-/*    padding: 0;*/
-/*    margin: 0 1rex;*/
-/*    accent-color: currentcolor;*/
-/*}*/
-
-/*#playback::before {*/
-/*    content: '';*/
-/*    background: #DDD;*/
-/*    box-shadow: rgba(0, 0, 0, 0.267) 0px -8px 3px -8px inset, rgba(255, 255, 255, 0.2) 0px 6px 2px -4px inset;*/
-/*    position: absolute;*/
-/*    left: -1rem;*/
-/*    right: -1rem;*/
-/*    height: 100%;*/
-/*    z-index: -1;*/
-/*}*/
-
-/*#upload, #upload-file {*/
-/*    grid-area: upload;*/
-/*}*/
-
-/*!* ============================================================*/
-/*   Status bar (bottom) — affects ONLY status UI*/
-/*============================================================ *!*/
+/*   Status bar (bottom) — affects ONLY status UI */
 
 #status-bar {
     display: flex;
     gap: 10px;
-    /*align-items: center;*/
-    /*flex: 1;*/
-    pointer-events: none; /* never blocks sliders */
+    pointer-events: none;
 }
 
 #status-bar > div {
-    /*flex: 1;*/
-    /*text-align: center;*/
 }
 
-/*#status-bar > #controller-status,*/
-/*#status-bar > #server-version,*/
-/*#status-bar > #ws-status,*/
-/*#status-bar > #machine-status {*/
-/*    pointer-events: none;*/
-/*    padding: 10px 12px;*/
-/*    border-radius: 6px;*/
-
-/*    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;*/
-
-/*    !* bigger + more readable on 1024x600 *!*/
-/*    font-size: 16px;*/
-/*    line-height: 1.25;*/
-
-/*    background: #000;*/
-/*    color: #fff;*/
-/*    opacity: 0.78;*/
-
-/*    !* allow wrapping instead of ellipsis *!*/
-/*    white-space: normal;*/
-/*    overflow: visible;*/
-/*    text-overflow: clip;*/
-
-/*    !* break long tokens like hostnames / "controller: connected · ..." *!*/
-/*    overflow-wrap: anywhere;*/
-/*    word-break: break-word;*/
-/*}*/
-
-/*!*!* All four badges share the same look *!*!*/
-/*!*#status-bar > #controller-status,*!*/
-/*!*#status-bar > #server-version,*!*/
-/*!*#status-bar > #ws-status,*!*/
-/*!*#status-bar > #machine-status*!*/
-/*!*{*!*/
-/*!*  pointer-events: none; !* extra safety *!*!*/
-/*!*  padding: 6px 10px;*!*/
-/*!*  border-radius: 4px;*!*/
-
-/*!*  font-family: monospace;*!*/
-/*!*  font-size: 12px;*!*/
-/*!*  line-height: 1.2;*!*/
-
-/*!*  background: #000;*!*/
-/*!*  color: #fff;*!*/
-/*!*  opacity: 0.7;*!*/
-
-/*!*  white-space: nowrap;*!*/
-/*!*  overflow: hidden;*!*/
-/*!*  text-overflow: ellipsis;*!*/
-/*!*}*!*/
-
-/*!* Layout: controller left, the other two to the right *!*/
-/*#controller-status {*/
-/*    flex: 1 1 auto; !* takes remaining space *!*/
-/*    min-width: 0; !* enables ellipsis in flex *!*/
-/*}*/
-
-/*#server-version,*/
-/*#ws-status {*/
-/*    flex: 0 0 auto; !* keep compact *!*/
-/*}*/
-
-
-/*!* ============================================================*/
-/*   Touchscreen tuning (1024x600): big sliders + half-width controls*/
-/*   Paste at END of app.css*/
-/*============================================================ *!*/
-
 /* 1) Keep the whole controls grid to half screen (512px) */
+
 .controls {
-    width: 512px;
-    max-width: 512px;
-    justify-self: start; /* left half */
     align-self: start;
     gap: .5rem;
+    justify-self: start;
+    max-width: 512px;
+    width: 512px;
 }
 
 /* Make the slider column actually shrink to the 512px container */
+
 .controls input[type="range"] {
     width: 100%;
 }
 
 /* 2) Touch-friendly range sliders (bigger track + bigger thumb) */
+
 .controls input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    height: 2.4rem; /* overall control height (gives finger room) */
-    margin: 0; /* avoid extra layout jitter */
     background: transparent;
-    touch-action: pan-y; /* improves drag on touchscreens */
+    height: 2.4rem;
+    margin: 0;
+    touch-action: pan-y;
 }
 
 /* WebKit track */
+
 .controls input[type="range"]::-webkit-slider-runnable-track {
-    height: 1.1rem;
-    border-radius: 999px;
     background: rgba(0, 0, 0, 0.12);
-    box-shadow: rgba(0, 0, 0, 0.25) 0px -6px 3px -6px inset,
-    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
+    border-radius: 999px;
+    box-shadow: rgba(0, 0, 0, 0.25) 0 -6px 3px -6px inset,
+    rgba(255, 255, 255, 0.35) 0 6px 3px -6px inset;
+    height: 1.1rem;
 }
 
 /* WebKit thumb */
+
 .controls input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 999px;
+    background: currentcolor;
     border: 2px solid rgba(0, 0, 0, 0.25);
-    background: currentcolor; /* uses your diagram-* accent colors */
-    margin-top: calc((1.1rem - 2.2rem) / 2); /* center thumb on track */
+    border-radius: 999px;
+    height: 2.2rem;
+    margin-top: calc((1.1rem - 2.2rem) / 2);
+    width: 2.2rem;
 }
 
 /* Firefox track */
+
 .controls input[type="range"]::-moz-range-track {
-    height: 1.1rem;
-    border-radius: 999px;
     background: rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+    height: 1.1rem;
 }
 
 /* Firefox thumb */
+
 .controls input[type="range"]::-moz-range-thumb {
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 999px;
-    border: 2px solid rgba(0, 0, 0, 0.25);
     background: currentcolor;
-}
-
-/* Optional: make number inputs a bit easier to tap */
-.controls input[type="number"] {
-    min-width: 5.5rem;
-    height: 2.2rem;
-    font-size: 1.05em;
-}
-
-/* Reset button: same size as the slider thumb, with inline SVG */
-.controls .reset-btn {
-    width: 2.2rem;
-    height: 2.2rem;
-    padding: 0;
-    margin: 0 0.35rem 0 0;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 999px;
     border: 2px solid rgba(0, 0, 0, 0.25);
+    border-radius: 999px;
+    height: 2.2rem;
+    width: 2.2rem;
+}
 
+.controls input[type="number"] {
+    font-size: 1.05em;
+    height: 2.2rem;
+    min-width: 5.5rem;
+}
+
+.controls .reset-btn {
+    align-items: center;
     background: rgba(255, 255, 255, 0.22);
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-radius: 999px;
+    box-shadow: rgba(0, 0, 0, 0.22) 0 -6px 3px -6px inset,
+    rgba(255, 255, 255, 0.35) 0 6px 3px -6px inset;
     color: currentcolor;
-
-    box-shadow: rgba(0, 0, 0, 0.22) 0px -6px 3px -6px inset,
-    rgba(255, 255, 255, 0.35) 0px 6px 3px -6px inset;
-
+    display: inline-flex;
+    height: 2.2rem;
+    justify-content: center;
+    margin: 0 0.35rem 0 0;
+    padding: 0;
     text-shadow: none;
+    width: 2.2rem;
 }
 
 .controls .reset-btn:active {
@@ -660,9 +450,72 @@ header, .header, .topbar {
 }
 
 .controls .reset-btn svg {
-    width: 1.25rem;
-    height: 1.25rem;
     display: block;
     fill: currentcolor;
+    height: 1.25rem;
     opacity: 0.95;
+    width: 1.25rem;
+}
+
+/* WS activity dot + msg/s ------------------------------------------------- */
+
+#ws-status .ws-dot {
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    display: inline-block;
+    height: 0.55rem;
+    margin-right: 0.5rem;
+    opacity: 0.55;
+    width: 0.55rem;
+}
+
+#ws-status[data-state="ok"] .ws-dot {
+    background: rgba(0, 180, 90, 0.95);
+    opacity: 0.85;
+}
+
+#ws-status[data-state="warn"] .ws-dot {
+    background: rgba(255, 165, 0, 0.95);
+    opacity: 0.85;
+}
+
+#ws-status[data-state="bad"] .ws-dot {
+    background: rgba(220, 50, 50, 0.95);
+    opacity: 0.90;
+}
+
+#ws-status.ws-pulse .ws-dot {
+    animation: wsDotPulse 240ms ease-out 1;
+}
+
+#ws-status .ws-rate {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
+    Courier New, monospace;
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+    margin-left: 0.6rem;
+    opacity: 0.85;
+}
+
+#ws-status[data-state="warn"] .ws-rate,
+#ws-status[data-state="bad"] .ws-rate {
+    opacity: 0.65;
+}
+
+@keyframes wsDotPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.0);
+        transform: scale(1);
+    }
+
+    35% {
+        box-shadow: 0 0 0 0.35rem rgba(255, 255, 255, 0.35);
+        transform: scale(1.35);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0.6rem rgba(255, 255, 255, 0.0);
+        transform: scale(1);
+    }
 }
