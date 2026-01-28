@@ -521,6 +521,10 @@ On your development machine (or anywhere with a clean repo):
     git commit -m "Make launch_on_pi.sh executable"
     git push
 
+    git update-index --chmod=+x launch_on_debian.sh
+    git commit -m "Make launch_on_debian.sh executable"
+    git push
+
 From then on, the file will come out executable after every pull/checkout automatically.
 
 Then on the Pi:
