@@ -165,7 +165,7 @@ export XAUTHORITY="${XAUTHORITY}"
 mkdir -p /run/chromium-cache 2>/dev/null || true
 
 setsid "${chromium_cmd}" \\
-#  --kiosk \\
+  --kiosk \\
   --disable-gpu \\
   --noerrdialogs \\
   --password-store=basic \\
