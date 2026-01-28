@@ -53,11 +53,14 @@ Only if you ever see:
     sudo apt install -y git
     sudo apt install -y chromium
 
+    sudo apt install -y python3 python3-pip
+    sudo pip3 install --break-system-packages websockets
+    sudo apt install -y python3-serial
+
     sudo apt install -y xdotool
     sudo apt install -y nodejs npm node-semver
     sudo npm i -g http-server
     sudo apt-get install -y iotop
-    sudo pip3 install --break-system-packages websockets
 
 
 ### Clone repo

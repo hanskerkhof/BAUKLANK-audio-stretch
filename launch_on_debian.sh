@@ -129,23 +129,41 @@ run_script_as_pi() {
 # ------------------------------------------------------------
 # Start Python http.server in its own process group
 # ------------------------------------------------------------
+#log "Starting python http.server on port $web_port, serving: $web_root"
+#http_pid="$(setsid bash -lc "exec python3 -m http.server '$web_port' --directory '$web_root'" >/dev/null 2>&1 & echo \$!)"
+#log "python http.server pid/pgid: $http_pid"
+
 log "Starting python http.server on port $web_port, serving: $web_root"
-http_pid="$(setsid bash -lc "exec python3 -m http.server '$web_port' --directory '$web_root'" >/dev/null 2>&1 & echo \$!)"
+setsid bash -lc "exec python3 -m http.server '$web_port' --directory '$web_root'" >/dev/null 2>&1 &
+http_pid=$!
 log "python http.server pid/pgid: $http_pid"
 
 # ------------------------------------------------------------
 # Start server-multi.py in its own process group
 # Adjust flags here if your server-multi.py differs.
 # ------------------------------------------------------------
+#log "Starting server-multi.py"
+#if [[ "$use_systemd_cat" == "1" ]]; then
+#  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
+#    > >(systemd-cat -t bauklank-server-multi) 2> >(systemd-cat -t bauklank-server-multi -p warning) & echo \$!)"
+#else
+#  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
+#    >/tmp/bauklank-server-multi.log 2>&1 & echo \$!)"
+#fi
+#log "server-multi.py pid/pgid: $py_pid"
+
 log "Starting server-multi.py"
-if [[ "$use_systemd_cat" == "1" ]]; then
-  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-    > >(systemd-cat -t bauklank-server-multi) 2> >(systemd-cat -t bauklank-server-multi -p warning) & echo \$!)"
+if command -v systemd-cat >/dev/null 2>&1; then
+  setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
+    > >(systemd-cat -t bauklank-server-multi) \
+    2> >(systemd-cat -t bauklank-server-multi -p warning) &
 else
-  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-    >/tmp/bauklank-server-multi.log 2>&1 & echo \$!)"
+  setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
+    >/tmp/bauklank-server-multi.log 2>&1 &
 fi
+py_pid=$!
 log "server-multi.py pid/pgid: $py_pid"
+
 
 sleep 0.5
 
