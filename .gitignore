@@ -106,3 +106,4 @@ media/
 # --- dotenv / local config overrides ---
 config.local.*
 settings.local.*
+/node_modules/
