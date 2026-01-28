@@ -60,6 +60,7 @@ Only if you ever see:
     sudo apt install -y xdotool
     sudo apt install -y nodejs npm node-semver
     sudo npm i -g http-server
+    sudo apt install -y htop
     sudo apt-get install -y iotop
 
 

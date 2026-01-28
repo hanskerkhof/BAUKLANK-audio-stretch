@@ -190,8 +190,8 @@ RUN (as user 'pi'):
     [Service]
     Type=simple
     User=pi
+    SupplementaryGroups=audio video input dialout    
     WorkingDirectory=/home/pi/Public/BAUKLANK-audio-stretch
-    
     Environment=DISPLAY=:0
     Environment=XAUTHORITY=/home/pi/.Xauthority
     
