@@ -103,7 +103,7 @@ configure_locale() {
 }
 
 configure_passwordless_sudo() {
-  log "Step 4/9: Configure passwordless sudo for '$PI_USER'"
+  log "Step 4/10: Configure passwordless sudo for '$PI_USER'"
   cat >/etc/sudoers.d/90-pi-nopasswd <<'EOF'
 pi ALL=(ALL) NOPASSWD:ALL
 EOF
@@ -111,8 +111,42 @@ EOF
 }
 
 configure_audio_defaults() {
-  log "Step 5/10: Set onboard audio to 80% and unmuted"
-  amixer -c 0 sset Master 80% unmute || true
+  log "Step 5/10: Set audio defaults to 90% and unmuted (ALSA + Pulse)"
+  local pi_uid
+  pi_uid="$(id -u "$PI_USER")"
+  local local_bin_dir="$PI_HOME/.local/bin"
+  local pulse_script="$local_bin_dir/bauklank-audio-defaults.sh"
+  local autostart_dir="$PI_HOME/.config/autostart"
+
+  # ALSA hardware master
+  amixer -c 0 sset Master 90% unmute || true
+
+  # PulseAudio default sink at session startup
+  install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$local_bin_dir"
+  cat >"$pulse_script" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+pactl set-sink-mute @DEFAULT_SINK@ 0 || true
+pactl set-sink-volume @DEFAULT_SINK@ 90% || true
+EOF
+  chown "$PI_USER:$PI_USER" "$pulse_script"
+  chmod 755 "$pulse_script"
+
+  install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$autostart_dir"
+  cat >"$autostart_dir/bauklank-audio-defaults.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=BAUKLANK Audio Defaults
+Comment=Set Pulse sink volume and mute state for kiosk session
+Exec=$pulse_script
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+Terminal=false
+EOF
+  chown "$PI_USER:$PI_USER" "$autostart_dir/bauklank-audio-defaults.desktop"
+
+  # Apply immediately if user audio runtime is available.
+  runuser -u "$PI_USER" -- env XDG_RUNTIME_DIR="/run/user/$pi_uid" "$pulse_script" || true
 }
 
 disable_screen_blanking() {
@@ -231,7 +265,7 @@ Configured:
 - Service: $SERVICE_NAME (systemd user)
 - LightDM autologin: enabled
 - Locale: en_US.UTF-8 (SSH LC_* warnings fixed)
-- Audio: Master set to 80% and unmuted
+- Audio: ALSA Master + Pulse sink set to 90% and unmuted
 - Screen blanking/locking: disabled for XFCE kiosk user
 
 Next:
