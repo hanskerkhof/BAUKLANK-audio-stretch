@@ -79,8 +79,16 @@ ensure_groups() {
   usermod -aG sudo,audio,video,input,dialout "$PI_USER"
 }
 
+configure_passwordless_sudo() {
+  log "Step 3/7: Configure passwordless sudo for '$PI_USER'"
+  cat >/etc/sudoers.d/90-pi-nopasswd <<'EOF'
+pi ALL=(ALL) NOPASSWD:ALL
+EOF
+  chmod 440 /etc/sudoers.d/90-pi-nopasswd
+}
+
 ensure_repo() {
-  log "Step 3/6: Ensure BAUKLANK repo is present"
+  log "Step 4/7: Ensure BAUKLANK repo is present"
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$PI_HOME/Public"
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -109,7 +117,7 @@ ensure_repo() {
 }
 
 configure_lightdm_autologin() {
-  log "Step 4/6: Configure LightDM autologin for '$PI_USER'"
+  log "Step 5/7: Configure LightDM autologin for '$PI_USER'"
   install -d -m 0755 /etc/lightdm/lightdm.conf.d
   cat >/etc/lightdm/lightdm.conf.d/50-bauklank-autologin.conf <<EOF
 [Seat:*]
@@ -121,7 +129,7 @@ EOF
 }
 
 install_user_service() {
-  log "Step 5/6: Install BAUKLANK systemd user service"
+  log "Step 6/7: Install BAUKLANK systemd user service"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local user_service_dir="$PI_HOME/.config/systemd/user"
@@ -147,7 +155,7 @@ install_user_service() {
 }
 
 print_summary() {
-  log "Step 6/6: Done"
+  log "Step 7/7: Done"
   cat <<EOF
 
 Provisioning complete.
@@ -171,6 +179,7 @@ main() {
   require_user_exists
   apt_install_packages
   ensure_groups
+  configure_passwordless_sudo
   ensure_repo
   configure_lightdm_autologin
   install_user_service
