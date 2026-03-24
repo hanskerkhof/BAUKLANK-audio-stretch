@@ -522,20 +522,8 @@ function hideProcessing(engine) {
         });
 
         const now = performance.now();
-<<<<<<< ours
-<<<<<<< ours
-        if (now - lastUiPaintMs > 250) {  // 4Hz UI paint max
-            lastUiPaintMs = now;
-            // Reflect in UI block here
-            // Reflect in UI
-=======
         if (now - engine.lastUiPaintMs > 250) {  // 4Hz UI paint max
             engine.lastUiPaintMs = now;
->>>>>>> theirs
-=======
-        if (now - engine.lastUiPaintMs > 250) {  // 4Hz UI paint max
-            engine.lastUiPaintMs = now;
->>>>>>> theirs
             if (engine.ui.controlsRoot) {
                 engine.ui.controlsRoot.querySelectorAll('input[data-key]').forEach(input => {
                     const key = input.dataset.key;
@@ -555,15 +543,7 @@ function hideProcessing(engine) {
                     }
                 });
             }
-<<<<<<< ours
-<<<<<<< ours
-        } // if (now - lastUiPaintMs > 250)
-=======
         }
->>>>>>> theirs
-=======
-        }
->>>>>>> theirs
     }
 
     // Apply incoming control/config updates, scoped to engine (WS/serial)
@@ -766,15 +746,7 @@ function hideProcessing(engine) {
             controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
         };
 
-<<<<<<< ours
-<<<<<<< ours
-        const PLAYBACK_UI_HZ = 5;           // 5Hz instead of 20Hz
-=======
         const PLAYBACK_UI_HZ = 5; // 5Hz instead of 20Hz
->>>>>>> theirs
-=======
-        const PLAYBACK_UI_HZ = 5; // 5Hz instead of 20Hz
->>>>>>> theirs
         const PLAYBACK_UI_MS = 1000 / PLAYBACK_UI_HZ;
 
         setInterval(() => {
