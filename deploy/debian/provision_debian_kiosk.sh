@@ -8,9 +8,10 @@ set -euo pipefail
 # Simple scope (no fancy options):
 # 1) Install required packages
 # 2) Add pi to required groups
-# 3) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
-# 4) Configure LightDM autologin for pi
-# 5) Install + enable BAUKLANK user service
+# 3) Disable screen blanking/locking
+# 4) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
+# 5) Configure LightDM autologin for pi
+# 6) Install + enable BAUKLANK user service
 #
 # Run:
 #   sudo ./deploy/debian/provision_debian_kiosk.sh
@@ -57,7 +58,7 @@ require_debian() {
 }
 
 apt_install_packages() {
-  log "Step 1/6: Install required Debian packages"
+  log "Step 1/8: Install required Debian packages"
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y \
@@ -76,20 +77,57 @@ apt_install_packages() {
 }
 
 ensure_groups() {
-  log "Step 2/6: Ensure '$PI_USER' is in required groups"
+  log "Step 2/8: Ensure '$PI_USER' is in required groups"
   usermod -aG sudo,audio,video,input,dialout "$PI_USER"
 }
 
 configure_passwordless_sudo() {
-  log "Step 3/7: Configure passwordless sudo for '$PI_USER'"
+  log "Step 3/8: Configure passwordless sudo for '$PI_USER'"
   cat >/etc/sudoers.d/90-pi-nopasswd <<'EOF'
 pi ALL=(ALL) NOPASSWD:ALL
 EOF
   chmod 440 /etc/sudoers.d/90-pi-nopasswd
 }
 
+disable_screen_blanking() {
+  log "Step 4/8: Disable screen blanking and screen locking"
+  local autostart_dir="$PI_HOME/.config/autostart"
+
+  install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$autostart_dir"
+
+  cat >"$autostart_dir/bauklank-no-blank.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=BAUKLANK Disable Screen Blanking
+Comment=Disable DPMS and screen blanking in kiosk session
+Exec=sh -c "xset s off -dpms s noblank"
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+Terminal=false
+EOF
+  chown "$PI_USER:$PI_USER" "$autostart_dir/bauklank-no-blank.desktop"
+
+  # Disable light-locker autostart if present.
+  cat >"$autostart_dir/light-locker.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=light-locker
+Hidden=true
+EOF
+  chown "$PI_USER:$PI_USER" "$autostart_dir/light-locker.desktop"
+
+  # Disable XFCE power-manager blanking if xfconf is available.
+  if command -v xfconf-query >/dev/null 2>&1; then
+    runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-enabled -n -t bool -s false || true
+    runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-ac -n -t int -s 0 || true
+    runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-battery -n -t int -s 0 || true
+    runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/inactivity-on-ac -n -t int -s 0 || true
+    runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/inactivity-on-battery -n -t int -s 0 || true
+  fi
+}
+
 ensure_repo() {
-  log "Step 4/7: Ensure BAUKLANK repo is present"
+  log "Step 5/8: Ensure BAUKLANK repo is present"
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$PI_HOME/Public"
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -118,7 +156,7 @@ ensure_repo() {
 }
 
 configure_lightdm_autologin() {
-  log "Step 5/7: Configure LightDM autologin for '$PI_USER'"
+  log "Step 6/8: Configure LightDM autologin for '$PI_USER'"
   install -d -m 0755 /etc/lightdm/lightdm.conf.d
   cat >/etc/lightdm/lightdm.conf.d/50-bauklank-autologin.conf <<EOF
 [Seat:*]
@@ -130,7 +168,7 @@ EOF
 }
 
 install_user_service() {
-  log "Step 6/7: Install BAUKLANK systemd user service"
+  log "Step 7/8: Install BAUKLANK systemd user service"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local user_service_dir="$PI_HOME/.config/systemd/user"
@@ -156,7 +194,7 @@ install_user_service() {
 }
 
 print_summary() {
-  log "Step 7/7: Done"
+  log "Step 8/8: Done"
   cat <<EOF
 
 Provisioning complete.
@@ -166,6 +204,7 @@ Configured:
 - Repo: $REPO_DIR
 - Service: $SERVICE_NAME (systemd user)
 - LightDM autologin: enabled
+- Screen blanking/locking: disabled for XFCE kiosk user
 
 Next:
 1) Reboot: sudo reboot
@@ -181,6 +220,7 @@ main() {
   apt_install_packages
   ensure_groups
   configure_passwordless_sudo
+  disable_screen_blanking
   ensure_repo
   configure_lightdm_autologin
   install_user_service
