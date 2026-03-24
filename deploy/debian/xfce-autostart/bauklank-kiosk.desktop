@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=BAUKLANK Kiosk
+Comment=Start BAUKLANK kiosk stack at XFCE login
+Exec=/home/pi/Public/BAUKLANK-audio-stretch/launch_on_debian.sh
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=XFCE;

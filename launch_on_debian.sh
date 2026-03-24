@@ -2,42 +2,59 @@
 set -euo pipefail
 
 # ============================================================
-# launch_on_debian.sh
+# BAUKLANK Debian Kiosk Launcher
+# File: launch_on_debian.sh
 #
-# Purpose
-# - Launch BAUKLANK kiosk stack on a Debian PC:
-#   1) Static web server (python3 -m http.server)
-#   2) WebSocket/serial bridge (python3 server-multi.py)
-#   3) Chromium kiosk
-#   4) Optional: xdotool click to start playback
+# Responsibilities
+# - Start the local static web app (python3 http.server)
+# - Start BAUKLANK serial/WebSocket bridge (server-multi.py)
+# - Start Chromium in kiosk mode against local URL
+# - Keep all child processes supervised and stop them cleanly
 #
-# Notes
-# - Debian Chromium binary is usually "chromium".
-# - Add --password-store=basic to avoid keyring prompts.
-# - Add --disable-gpu for old Intel graphics stability.
+# Integration context
+# - Intended for Debian 13 kiosk installs on stronger x86 hardware
+# - Intended to run as desktop user "pi" (not root)
+# - Works with either:
+#   1) systemd user service (recommended)
+#   2) XFCE autostart entry
+#
+# Design notes
+# - Uses a dedicated Chromium profile dir to avoid first-run noise
+# - Uses --password-store=basic to avoid keyring popups
+# - Keeps Chromium flags intentionally minimal and stable
+# - GPU stays enabled by default; enable disable-gpu only if needed
 # ============================================================
 
-user_name="pi"
-user_home="/home/$user_name"
+readonly USER_NAME="pi"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# URL to open in Chromium
-url="http://127.0.0.1:8080/index.html?engines=1&slot=A"
-
-# Web root for the static site
-web_root="app/multi"
-web_port="8080"
-
-# X session (typical for LightDM + XFCE autologin)
-export DISPLAY="${DISPLAY:-:0}"
-export XAUTHORITY="${XAUTHORITY:-$user_home/.Xauthority}"
+# ------- Runtime config (override via environment when needed) -------
+readonly WEB_ROOT="${BAUKLANK_WEB_ROOT:-$SCRIPT_DIR/app/multi}"
+readonly WEB_PORT="${BAUKLANK_WEB_PORT:-8080}"
+readonly WS_HOST="${BAUKLANK_WS_HOST:-127.0.0.1}"
+readonly WS_PORT="${BAUKLANK_WS_PORT:-8765}"
+readonly ENGINE_COUNT="${BAUKLANK_ENGINE_COUNT:-1}"
+readonly ENGINE_SLOT="${BAUKLANK_ENGINE_SLOT:-A}"
+readonly APP_URL="${BAUKLANK_APP_URL:-http://127.0.0.1:8080/index.html?engines=1&slot=A}"
+readonly CHROMIUM_PROFILE_DIR="${BAUKLANK_CHROMIUM_PROFILE_DIR:-$HOME/.config/chromium-kiosk}"
+readonly CHROMIUM_DISABLE_GPU="${BAUKLANK_CHROMIUM_DISABLE_GPU:-0}"
+readonly CLICK_TO_START="${BAUKLANK_CLICK_TO_START:-0}"
+readonly CLICK_X="${BAUKLANK_CLICK_X:-30}"
+readonly CLICK_Y="${BAUKLANK_CLICK_Y:-30}"
+readonly DISPLAY="${DISPLAY:-:0}"
+readonly XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 
 http_pid=""
-py_pid=""
+bridge_pid=""
 chrome_pid=""
 
 log() {
-  local msg="$1"
-  echo "[$(date +'%F %T')] $msg"
+  printf '[%s] %s\n' "$(date +'%F %T')" "$*"
+}
+
+fail() {
+  log "ERROR: $*"
+  exit 1
 }
 
 has_cmd() {
@@ -48,207 +65,171 @@ kill_process_group() {
   local pid="$1"
   local label="$2"
 
-  if [[ -z "${pid:-}" ]]; then
-    return 0
-  fi
+  [[ -z "${pid:-}" ]] && return 0
+  kill -0 "$pid" 2>/dev/null || return 0
 
-  if ! kill -0 "$pid" 2>/dev/null; then
-    return 0
-  fi
-
-  log "Stopping $label (pgid: $pid)..."
+  log "Stopping $label (pgid=$pid)"
   kill -TERM "-$pid" 2>/dev/null || true
 
-  for _ in {1..15}; do
-    if ! kill -0 "$pid" 2>/dev/null; then
-      return 0
-    fi
+  for _ in {1..30}; do
+    kill -0 "$pid" 2>/dev/null || return 0
     sleep 0.2
   done
 
-  log "$label did not stop in time, forcing kill (pgid: $pid)..."
+  log "$label still running; forcing kill (pgid=$pid)"
   kill -KILL "-$pid" 2>/dev/null || true
 }
 
 cleanup() {
-  log "Cleanup..."
+  log "Cleanup starting"
   kill_process_group "$chrome_pid" "Chromium"
-  kill_process_group "$py_pid" "server-multi.py"
-  kill_process_group "$http_pid" "python http.server"
-  log "Cleanup done."
+  kill_process_group "$bridge_pid" "server-multi.py"
+  kill_process_group "$http_pid" "http.server"
+  log "Cleanup finished"
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
-# ------------------------------------------------------------
-# Checks
-# ------------------------------------------------------------
-if [[ ! -d "$web_root" ]]; then
-  log "ERROR: web_root not found: $web_root"
-  exit 1
-fi
-
-if ! has_cmd python3; then
-  log "ERROR: python3 not found."
-  exit 1
-fi
-
-if [[ ! -f "server-multi.py" ]]; then
-  log "ERROR: server-multi.py not found in current directory. Run from repo root."
-  exit 1
-fi
-
-if ! has_cmd xdotool; then
-  log "WARN: xdotool not found. Auto-click step will be skipped."
-fi
-
-chromium_cmd=""
-if has_cmd chromium; then
-  chromium_cmd="chromium"
-elif has_cmd chromium-browser; then
-  chromium_cmd="chromium-browser"
-else
-  log "ERROR: Chromium not found. Install with: sudo apt install chromium"
-  exit 1
-fi
-
-use_systemd_cat="0"
-if has_cmd systemd-cat; then
-  use_systemd_cat="1"
-fi
-
-# Helper: run a script as pi if invoked from root/systemd
-run_script_as_pi() {
-  local script_path="$1"
-  if [[ "$(id -un)" == "$user_name" ]]; then
-    bash "$script_path"
-  else
-    sudo -u "$user_name" -H bash "$script_path"
+resolve_chromium() {
+  if [[ -n "${BAUKLANK_CHROMIUM_BIN:-}" ]] && has_cmd "$BAUKLANK_CHROMIUM_BIN"; then
+    printf '%s' "$BAUKLANK_CHROMIUM_BIN"
+    return 0
   fi
+
+  if has_cmd chromium; then
+    printf '%s' "chromium"
+    return 0
+  fi
+
+  if has_cmd chromium-browser; then
+    printf '%s' "chromium-browser"
+    return 0
+  fi
+
+  return 1
 }
 
-# ------------------------------------------------------------
-# Start Python http.server in its own process group
-# ------------------------------------------------------------
-#log "Starting python http.server on port $web_port, serving: $web_root"
-#http_pid="$(setsid bash -lc "exec python3 -m http.server '$web_port' --directory '$web_root'" >/dev/null 2>&1 & echo \$!)"
-#log "python http.server pid/pgid: $http_pid"
+wait_for_http() {
+  local url="$1"
+  local timeout_sec="$2"
+  local deadline=$((SECONDS + timeout_sec))
 
-log "Starting python http.server on port $web_port, serving: $web_root"
-setsid bash -lc "exec python3 -m http.server '$web_port' --directory '$web_root'" >/dev/null 2>&1 &
-http_pid=$!
-log "python http.server pid/pgid: $http_pid"
+  while (( SECONDS < deadline )); do
+    if python3 - "$url" >/dev/null 2>&1 <<'PY'
+import sys
+import urllib.request
 
-# ------------------------------------------------------------
-# Start server-multi.py in its own process group
-# Adjust flags here if your server-multi.py differs.
-# ------------------------------------------------------------
-#log "Starting server-multi.py"
-#if [[ "$use_systemd_cat" == "1" ]]; then
-#  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-#    > >(systemd-cat -t bauklank-server-multi) 2> >(systemd-cat -t bauklank-server-multi -p warning) & echo \$!)"
-#else
-#  py_pid="$(setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-#    >/tmp/bauklank-server-multi.log 2>&1 & echo \$!)"
-#fi
-#log "server-multi.py pid/pgid: $py_pid"
-
-log "Starting server-multi.py"
-if command -v systemd-cat >/dev/null 2>&1; then
-  setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-    > >(systemd-cat -t bauklank-server-multi) \
-    2> >(systemd-cat -t bauklank-server-multi -p warning) &
-else
-  setsid bash -lc "exec python3 server-multi.py --startup-log-level INFO --run-log-level WARNING --engine-count 1" \
-    >/tmp/bauklank-server-multi.log 2>&1 &
-fi
-py_pid=$!
-log "server-multi.py pid/pgid: $py_pid"
-
-
-sleep 0.5
-
-# ------------------------------------------------------------
-# Start Chromium in its own process group (as pi), with robust quoting
-# ------------------------------------------------------------
-log "Starting Chromium kiosk at $url"
-
-tmp_script="$(mktemp)"
-cat >"$tmp_script" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-
-export DISPLAY="${DISPLAY}"
-export XAUTHORITY="${XAUTHORITY}"
-
-mkdir -p /run/chromium-cache 2>/dev/null || true
-
-setsid "${chromium_cmd}" \\
-  --kiosk \\
-  --disable-gpu \\
-  --noerrdialogs \\
-  --password-store=basic \\
-  --disk-cache-dir=/run/chromium-cache \\
-  --user-data-dir="${user_home}/.config/chromium-kiosk" \\
-  --no-first-run \\
-  --no-default-browser-check \\
-  --disable-infobars \\
-  --disable-session-crashed-bubble \\
-  --autoplay-policy=no-user-gesture-required \\
-  --disable-background-networking \\
-  --disable-component-update \\
-  --disable-domain-reliability \\
-  --disable-sync \\
-  --disable-default-apps \\
-  --disable-pings \\
-  --metrics-recording-only \\
-  --disable-crash-reporter \\
-  --disable-breakpad \\
-  --disable-notifications \\
-  --disable-features=Translate,MediaRouter,PushMessaging \\
-  "${url}" >/dev/null 2>&1 &
-
-echo \$!
-EOF
-chmod +x "$tmp_script"
-
-chrome_pid="$(run_script_as_pi "$tmp_script")"
-rm -f "$tmp_script"
-
-log "Chromium pid/pgid: $chrome_pid"
-
-# Give Chromium time to create a window on slow hardware
-sleep 12
-
-# ------------------------------------------------------------
-# Focus window and click (optional)
-# ------------------------------------------------------------
-if has_cmd xdotool; then
-  log "Waiting for Chromium window..."
-  win_id=""
-  for _ in {1..80}; do
-    win_id="$(xdotool search --onlyvisible --class chromium | tail -n 1 || true)"
-    if [[ -n "$win_id" ]]; then
-      break
+url = sys.argv[1]
+try:
+    with urllib.request.urlopen(url, timeout=0.5) as response:
+        sys.exit(0 if 200 <= response.status < 500 else 1)
+except Exception:
+    sys.exit(1)
+PY
+    then
+      return 0
     fi
     sleep 0.25
   done
 
-  if [[ -n "$win_id" ]]; then
-    log "Found Chromium window: $win_id, activating..."
-    xdotool windowactivate --sync "$win_id" || true
-    sleep 1
-    log "Click play"
-    xdotool mousemove --sync 30 30
-    xdotool click 1
-  else
-    log "WARN: Chromium window not found, skipping auto-click."
+  return 1
+}
+
+maybe_click_play() {
+  [[ "$CLICK_TO_START" == "1" ]] || return 0
+
+  if ! has_cmd xdotool; then
+    log "CLICK_TO_START=1 but xdotool is missing; skipping click"
+    return 0
   fi
+
+  log "CLICK_TO_START enabled; waiting for Chromium window"
+  local win_id=""
+  for _ in {1..80}; do
+    win_id="$(xdotool search --onlyvisible --class chromium | tail -n 1 || true)"
+    [[ -n "$win_id" ]] && break
+    sleep 0.25
+  done
+
+  if [[ -z "$win_id" ]]; then
+    log "Chromium window not found; skipping click"
+    return 0
+  fi
+
+  xdotool windowactivate --sync "$win_id" || true
+  sleep 0.5
+  xdotool mousemove --sync "$CLICK_X" "$CLICK_Y"
+  xdotool click 1
+  log "Startup click sent at x=$CLICK_X y=$CLICK_Y"
+}
+
+# ------- Preconditions -------
+[[ "$(id -un)" == "$USER_NAME" ]] || fail "Run this as user '$USER_NAME' (current: $(id -un))."
+[[ -d "$WEB_ROOT" ]] || fail "Web root not found: $WEB_ROOT"
+[[ -f "$SCRIPT_DIR/server-multi.py" ]] || fail "Missing file: $SCRIPT_DIR/server-multi.py"
+has_cmd python3 || fail "python3 is not installed"
+
+chromium_bin="$(resolve_chromium)" || fail "Chromium binary not found (tried chromium, chromium-browser)"
+
+if [[ ! -f "$XAUTHORITY" ]]; then
+  log "WARN: XAUTHORITY file not found at $XAUTHORITY"
 fi
 
-# ------------------------------------------------------------
-# Keep script alive until stopped (Ctrl+C)
-# ------------------------------------------------------------
-log "Kiosk stack running. Press Ctrl+C to stop."
+log "BAUKLANK launcher starting"
+log "Repo dir: $SCRIPT_DIR"
+log "App URL:  $APP_URL"
+log "DISPLAY:  $DISPLAY"
+
+mkdir -p "$CHROMIUM_PROFILE_DIR"
+
+# ------- Start static web server -------
+log "Starting python3 -m http.server on :$WEB_PORT from $WEB_ROOT"
+setsid python3 -m http.server "$WEB_PORT" --directory "$WEB_ROOT" &
+http_pid="$!"
+
+wait_for_http "$APP_URL" 30 || fail "Web app did not become reachable at $APP_URL"
+
+# ------- Start BAUKLANK bridge -------
+log "Starting server-multi.py (engine-count=$ENGINE_COUNT, slot=$ENGINE_SLOT)"
+setsid python3 "$SCRIPT_DIR/server-multi.py" \
+  --engine-count "$ENGINE_COUNT" \
+  --slot "$ENGINE_SLOT" \
+  --ws-host "$WS_HOST" \
+  --ws-port "$WS_PORT" \
+  --startup-log-level INFO \
+  --run-log-level WARNING &
+bridge_pid="$!"
+
+# Small stabilization delay before browser launch
+sleep 0.5
+
+# ------- Start Chromium kiosk -------
+chromium_flags=(
+  --kiosk
+  --password-store=basic
+  --user-data-dir="$CHROMIUM_PROFILE_DIR"
+  --no-first-run
+  --no-default-browser-check
+  --autoplay-policy=no-user-gesture-required
+  --disable-session-crashed-bubble
+)
+
+if [[ "$CHROMIUM_DISABLE_GPU" == "1" ]]; then
+  chromium_flags+=(--disable-gpu)
+  log "Chromium GPU disabled (BAUKLANK_CHROMIUM_DISABLE_GPU=1)"
+fi
+
+log "Starting Chromium kiosk"
+setsid "$chromium_bin" "${chromium_flags[@]}" "$APP_URL" &
+chrome_pid="$!"
+
+# Optional, only if explicitly enabled
+maybe_click_play
+
+# ------- Supervision loop -------
+log "Kiosk stack is running"
 while true; do
-  sleep 1
+  kill -0 "$http_pid" 2>/dev/null || fail "http.server exited unexpectedly"
+  kill -0 "$bridge_pid" 2>/dev/null || fail "server-multi.py exited unexpectedly"
+  kill -0 "$chrome_pid" 2>/dev/null || fail "Chromium exited unexpectedly"
+  sleep 2
 done

@@ -1,0 +1,36 @@
+# ============================================================
+# BAUKLANK Kiosk User Service (Debian 13 / XFCE)
+# File: deploy/debian/systemd-user/bauklank-kiosk.service
+#
+# Responsibility
+# - Start BAUKLANK kiosk stack inside user "pi" session.
+#
+# Why user service
+# - Runs in the same desktop session as Chromium.
+# - Avoids common DISPLAY/XAUTHORITY race issues from system services.
+# ============================================================
+
+[Unit]
+Description=BAUKLANK Kiosk (audio stretch)
+After=graphical-session.target network-online.target
+Wants=network-online.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/Public/BAUKLANK-audio-stretch
+ExecStart=/home/pi/Public/BAUKLANK-audio-stretch/launch_on_debian.sh
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+# Keep defaults explicit for field troubleshooting.
+Environment=BAUKLANK_ENGINE_COUNT=1
+Environment=BAUKLANK_ENGINE_SLOT=A
+Environment=BAUKLANK_APP_URL=http://127.0.0.1:8080/index.html?engines=1&slot=A
+Environment=BAUKLANK_CHROMIUM_DISABLE_GPU=0
+Environment=BAUKLANK_CLICK_TO_START=0
+
+[Install]
+WantedBy=default.target
