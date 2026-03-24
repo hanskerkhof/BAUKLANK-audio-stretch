@@ -91,6 +91,17 @@ ensure_repo() {
     rm -rf "$REPO_DIR"
     cp -a "$REPO_ROOT" "$REPO_DIR"
     chown -R "$PI_USER:$PI_USER" "$REPO_DIR"
+  elif [[ -d "$REPO_DIR" ]] && [[ -n "$(ls -A "$REPO_DIR" 2>/dev/null)" ]]; then
+    log "Non-git directory already exists at target: bootstrapping repo in place"
+    runuser -u "$PI_USER" -- git -C "$REPO_DIR" init
+    if runuser -u "$PI_USER" -- git -C "$REPO_DIR" remote get-url origin >/dev/null 2>&1; then
+      runuser -u "$PI_USER" -- git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+    else
+      runuser -u "$PI_USER" -- git -C "$REPO_DIR" remote add origin "$REPO_URL"
+    fi
+    runuser -u "$PI_USER" -- git -C "$REPO_DIR" fetch origin
+    runuser -u "$PI_USER" -- git -C "$REPO_DIR" checkout -B main origin/main
+    runuser -u "$PI_USER" -- git -C "$REPO_DIR" reset --hard origin/main
   else
     log "Cloning repo from GitHub"
     runuser -u "$PI_USER" -- git clone "$REPO_URL" "$REPO_DIR"
