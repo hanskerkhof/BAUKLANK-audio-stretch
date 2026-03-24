@@ -35,6 +35,28 @@ Then reboot:
 sudo reboot
 ```
 
+## 2b) Add existing Mac SSH key to machine (`ssh-copy-id`)
+
+If you already have a key on your Mac, install it on the Debian machine before remote ops.
+
+Use RSA key:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_rsa.pub pi@192.168.68.58
+```
+
+Or use ed25519 key:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub pi@192.168.68.58
+```
+
+Then test:
+
+```bash
+ssh pi@192.168.68.58
+```
+
 ## 3) What the provision script configures
 
 Script:

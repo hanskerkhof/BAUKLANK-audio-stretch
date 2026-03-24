@@ -19,6 +19,14 @@ Notes:
 - Use strong unique machine passwords.
 - Use absolute paths in operational commands.
 
+Install your existing Mac SSH key onto the kiosk:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_rsa.pub pi@192.168.68.58
+# or
+ssh-copy-id -i ~/.ssh/id_ed25519.pub pi@192.168.68.58
+```
+
 ### Setup Hifiberry Amp2
 
 To setup the Hifiberry Amp2 you'll have to start by removing the driver for the onboard sound.
