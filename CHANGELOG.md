@@ -8,10 +8,10 @@ All notable changes to this project should be documented in this file.
 - Corrected incoming `volume` value interpretation in `app/multi/app.mjs` so integer `0..100` values are treated as percent. This fixes the edge case where value `1` was interpreted as 100% instead of 1%.
 
 ### Changed
-- Added randomized per-channel startup audio offsets in `app/multi/app.mjs`:
-  - `CHANNEL_AUDIO_START_OFFSET_MIN_MS = 60 * 1000`
-  - `CHANNEL_AUDIO_START_OFFSET_MAX_MS = 3 * 60 * 1000`
-  Each engine now gets a one-time random start offset in that range at boot (anchored to app start), and the delay is not reapplied during normal runtime updates.
+- Added randomized one-time startup input-position offsets in `app/multi/app.mjs`:
+  - `CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000`
+  - `CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000`
+  Each engine now starts playback from a one-time random position offset in that range at boot, without delaying playback start or overriding later scrub/runtime updates.
 
 ## [2026-03-24]
 

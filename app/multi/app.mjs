@@ -13,12 +13,12 @@ const DEFAULT_AUDIO_BY_ENGINE = {
     B: 'Black Hole Sun - Soundgarden.mp3',
 };
 
-const CHANNEL_AUDIO_START_OFFSET_MIN_MS = 60 * 1000;
-const CHANNEL_AUDIO_START_OFFSET_MAX_MS = 3 * 60 * 1000;
+const CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000;
+const CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000;
 
-function getRandomChannelAudioStartOffsetMs() {
-    const minMs = Math.max(0, Math.min(CHANNEL_AUDIO_START_OFFSET_MIN_MS, CHANNEL_AUDIO_START_OFFSET_MAX_MS));
-    const maxMs = Math.max(minMs, Math.max(CHANNEL_AUDIO_START_OFFSET_MIN_MS, CHANNEL_AUDIO_START_OFFSET_MAX_MS));
+function getRandomChannelAudioStartInputOffsetMs() {
+    const minMs = Math.max(0, Math.min(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
+    const maxMs = Math.max(minMs, Math.max(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
     return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
 }
 
@@ -220,9 +220,8 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
         // ui state
         currentFileName: '',
         lastUiPaintMs: 0,
-        startupOffsetMs: getRandomChannelAudioStartOffsetMs(),
-        startupOffsetPending: true,
-        startupOffsetOutputTimeSec: null
+        startupInputOffsetMs: getRandomChannelAudioStartInputOffsetMs(),
+        startupInputOffsetPending: true
     };
 }
 
@@ -370,7 +369,6 @@ function hideProcessing(engine) {
 // ------------------------------------------------------------
 (async function main() {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const appBootAudioContextTime = audioContext.currentTime;
 
     // Mix: route A->L (0), B->R (1). Future channels: increase merger inputs.
     const mixNode = audioContext.createChannelMerger(2);
@@ -524,22 +522,21 @@ function hideProcessing(engine) {
         const seekInput = (opts && Number.isFinite(opts.input))
             ? clamp(toFiniteNumber(opts.input, 0), 0, engine.audioDuration)
             : null;
+        const isActive = !!engine.controlValues.active;
+
+        let inputForSchedule = seekInput;
+        if (inputForSchedule === null && isActive && engine.startupInputOffsetPending) {
+            inputForSchedule = clamp(
+                toFiniteNumber(engine.startupInputOffsetMs, 0) / 1000,
+                0,
+                engine.audioDuration
+            );
+            // Consume once so runtime updates/scrub are not overridden.
+            engine.startupInputOffsetPending = false;
+        }
 
         const scheduleOffset = scheduleAhead ? 0.1 : 0.0;
-        const isActive = !!engine.controlValues.active;
-        let outputTime = audioContext.currentTime + scheduleOffset;
-
-        // One-time randomized startup offset per engine, anchored to app boot time.
-        if (isActive && engine.startupOffsetPending) {
-            if (!Number.isFinite(engine.startupOffsetOutputTimeSec)) {
-                const offsetMs = Math.max(0, toFiniteNumber(engine.startupOffsetMs, 0));
-                engine.startupOffsetOutputTimeSec = appBootAudioContextTime + (offsetMs / 1000);
-            }
-            outputTime = Math.max(outputTime, engine.startupOffsetOutputTimeSec);
-            if (audioContext.currentTime >= engine.startupOffsetOutputTimeSec) {
-                engine.startupOffsetPending = false;
-            }
-        }
+        const outputTime = audioContext.currentTime + scheduleOffset;
 
         engine.stretch.schedule({
             active: isActive,
@@ -551,7 +548,7 @@ function hideProcessing(engine) {
             formantBaseHz,
             loopStart,
             loopEnd,
-            ...(seekInput !== null ? {input: seekInput} : {}),
+            ...(inputForSchedule !== null ? {input: inputForSchedule} : {}),
             outputTime
         });
 
