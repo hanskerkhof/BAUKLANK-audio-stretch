@@ -1,7 +1,22 @@
-### Login
+## Debian Kiosk (Canonical)
 
-    User:     pi
-    Password: raspberry!
+For Debian 13 kiosk machines (OptiPlex flow), use:
+
+- Full guide: `README-Debian.md`
+- Provision script: `/home/pi/Public/BAUKLANK-audio-stretch/deploy/debian/provision_debian_kiosk.sh`
+
+Core flow:
+
+```bash
+mkdir -p /home/pi/Public
+cd /home/pi/Public
+git clone git@github.com:hanskerkhof/BAUKLANK-audio-stretch.git
+sudo /home/pi/Public/BAUKLANK-audio-stretch/deploy/debian/provision_debian_kiosk.sh
+```
+
+Notes:
+- Use strong unique machine passwords.
+- Use absolute paths in operational commands.
 
 ### Setup Hifiberry Amp2
 
