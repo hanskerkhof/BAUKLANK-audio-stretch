@@ -13,6 +13,7 @@ set -euo pipefail
 # 5) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
 # 6) Configure LightDM autologin for pi
 # 7) Install + enable BAUKLANK user service
+# 8) Set onboard audio output to unmuted default
 #
 # Run:
 #   sudo ./deploy/debian/provision_debian_kiosk.sh
@@ -109,8 +110,13 @@ EOF
   chmod 440 /etc/sudoers.d/90-pi-nopasswd
 }
 
+configure_audio_defaults() {
+  log "Step 5/10: Set onboard audio to 80% and unmuted"
+  amixer -c 0 sset Master 80% unmute || true
+}
+
 disable_screen_blanking() {
-  log "Step 5/9: Disable screen blanking and screen locking"
+  log "Step 6/10: Disable screen blanking and screen locking"
   local autostart_dir="$PI_HOME/.config/autostart"
 
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$autostart_dir"
@@ -147,7 +153,7 @@ EOF
 }
 
 ensure_repo() {
-  log "Step 6/9: Ensure BAUKLANK repo is present"
+  log "Step 7/10: Ensure BAUKLANK repo is present"
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$PI_HOME/Public"
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -176,7 +182,7 @@ ensure_repo() {
 }
 
 configure_lightdm_autologin() {
-  log "Step 7/9: Configure LightDM autologin for '$PI_USER'"
+  log "Step 8/10: Configure LightDM autologin for '$PI_USER'"
   install -d -m 0755 /etc/lightdm/lightdm.conf.d
   cat >/etc/lightdm/lightdm.conf.d/50-bauklank-autologin.conf <<EOF
 [Seat:*]
@@ -188,7 +194,7 @@ EOF
 }
 
 install_user_service() {
-  log "Step 8/9: Install BAUKLANK systemd user service"
+  log "Step 9/10: Install BAUKLANK systemd user service"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local user_service_dir="$PI_HOME/.config/systemd/user"
@@ -214,7 +220,7 @@ install_user_service() {
 }
 
 print_summary() {
-  log "Step 9/9: Done"
+  log "Step 10/10: Done"
   cat <<EOF
 
 Provisioning complete.
@@ -225,6 +231,7 @@ Configured:
 - Service: $SERVICE_NAME (systemd user)
 - LightDM autologin: enabled
 - Locale: en_US.UTF-8 (SSH LC_* warnings fixed)
+- Audio: Master set to 80% and unmuted
 - Screen blanking/locking: disabled for XFCE kiosk user
 
 Next:
@@ -242,6 +249,7 @@ main() {
   ensure_groups
   configure_locale
   configure_passwordless_sudo
+  configure_audio_defaults
   disable_screen_blanking
   ensure_repo
   configure_lightdm_autologin
