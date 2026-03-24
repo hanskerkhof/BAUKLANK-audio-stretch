@@ -8,10 +8,11 @@ set -euo pipefail
 # Simple scope (no fancy options):
 # 1) Install required packages
 # 2) Add pi to required groups
-# 3) Disable screen blanking/locking
-# 4) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
-# 5) Configure LightDM autologin for pi
-# 6) Install + enable BAUKLANK user service
+# 3) Configure locale cleanly (fix SSH locale warnings)
+# 4) Disable screen blanking/locking
+# 5) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
+# 6) Configure LightDM autologin for pi
+# 7) Install + enable BAUKLANK user service
 #
 # Run:
 #   sudo ./deploy/debian/provision_debian_kiosk.sh
@@ -58,7 +59,7 @@ require_debian() {
 }
 
 apt_install_packages() {
-  log "Step 1/8: Install required Debian packages"
+  log "Step 1/9: Install required Debian packages"
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y \
@@ -68,6 +69,7 @@ apt_install_packages() {
     git \
     htop \
     iotop \
+    locales \
     python3 \
     python3-pip \
     python3-serial \
@@ -77,12 +79,30 @@ apt_install_packages() {
 }
 
 ensure_groups() {
-  log "Step 2/8: Ensure '$PI_USER' is in required groups"
+  log "Step 2/9: Ensure '$PI_USER' is in required groups"
   usermod -aG sudo,audio,video,input,dialout "$PI_USER"
 }
 
+configure_locale() {
+  log "Step 3/9: Configure system locale and SSH locale handling"
+
+  sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  grep -q '^en_US.UTF-8 UTF-8' /etc/locale.gen || echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
+  locale-gen
+  update-locale LANG=en_US.UTF-8 LC_CTYPE=en_US.UTF-8
+
+  # Mac SSH clients often send LC_CTYPE=UTF-8 (invalid locale name on Debian).
+  # Accept only LANG from SSH client to avoid repeated login warnings.
+  if grep -qE '^[#[:space:]]*AcceptEnv' /etc/ssh/sshd_config; then
+    sed -i 's/^[#[:space:]]*AcceptEnv.*/AcceptEnv LANG/' /etc/ssh/sshd_config
+  else
+    printf '\nAcceptEnv LANG\n' >> /etc/ssh/sshd_config
+  fi
+  systemctl restart ssh || true
+}
+
 configure_passwordless_sudo() {
-  log "Step 3/8: Configure passwordless sudo for '$PI_USER'"
+  log "Step 4/9: Configure passwordless sudo for '$PI_USER'"
   cat >/etc/sudoers.d/90-pi-nopasswd <<'EOF'
 pi ALL=(ALL) NOPASSWD:ALL
 EOF
@@ -90,7 +110,7 @@ EOF
 }
 
 disable_screen_blanking() {
-  log "Step 4/8: Disable screen blanking and screen locking"
+  log "Step 5/9: Disable screen blanking and screen locking"
   local autostart_dir="$PI_HOME/.config/autostart"
 
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$autostart_dir"
@@ -127,7 +147,7 @@ EOF
 }
 
 ensure_repo() {
-  log "Step 5/8: Ensure BAUKLANK repo is present"
+  log "Step 6/9: Ensure BAUKLANK repo is present"
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$PI_HOME/Public"
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -156,7 +176,7 @@ ensure_repo() {
 }
 
 configure_lightdm_autologin() {
-  log "Step 6/8: Configure LightDM autologin for '$PI_USER'"
+  log "Step 7/9: Configure LightDM autologin for '$PI_USER'"
   install -d -m 0755 /etc/lightdm/lightdm.conf.d
   cat >/etc/lightdm/lightdm.conf.d/50-bauklank-autologin.conf <<EOF
 [Seat:*]
@@ -168,7 +188,7 @@ EOF
 }
 
 install_user_service() {
-  log "Step 7/8: Install BAUKLANK systemd user service"
+  log "Step 8/9: Install BAUKLANK systemd user service"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local user_service_dir="$PI_HOME/.config/systemd/user"
@@ -194,7 +214,7 @@ install_user_service() {
 }
 
 print_summary() {
-  log "Step 8/8: Done"
+  log "Step 9/9: Done"
   cat <<EOF
 
 Provisioning complete.
@@ -204,6 +224,7 @@ Configured:
 - Repo: $REPO_DIR
 - Service: $SERVICE_NAME (systemd user)
 - LightDM autologin: enabled
+- Locale: en_US.UTF-8 (SSH LC_* warnings fixed)
 - Screen blanking/locking: disabled for XFCE kiosk user
 
 Next:
@@ -219,6 +240,7 @@ main() {
   require_user_exists
   apt_install_packages
   ensure_groups
+  configure_locale
   configure_passwordless_sudo
   disable_screen_blanking
   ensure_repo

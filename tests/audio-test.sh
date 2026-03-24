@@ -9,6 +9,10 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_HTML="${REPO_DIR}/tests/audio-test.html"
 PROFILE_DIR="${HOME}/.config/chromium-audio-test"
 
+# Allow running from SSH by defaulting to the main local X session.
+export DISPLAY="${DISPLAY:-:0}"
+export XAUTHORITY="${XAUTHORITY:-${HOME}/.Xauthority}"
+
 if [[ ! -f "${TEST_HTML}" ]]; then
   echo "ERROR: Missing ${TEST_HTML}"
   exit 1
