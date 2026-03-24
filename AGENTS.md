@@ -21,6 +21,7 @@ Use these conventions when assisting.
 
 ### Important operational lessons
 - Use absolute paths in operator commands.
+- Maintain `CHANGELOG.md` for every meaningful repo change (code, scripts, service defaults, docs/runbook updates).
 - First bootstrap on a fresh machine is:
   1) install `git` (`sudo apt update && sudo apt install -y git`)
   2) clone repo into `/home/pi/Public`
