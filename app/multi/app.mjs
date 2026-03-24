@@ -72,7 +72,13 @@ function setVolumeFromPercent(engine, value, fallback = 100) {
 function setVolumeNormalized(engine, value) {
     const n = toFiniteNumber(value, NaN);
     if (!Number.isFinite(n)) return false;
-    const normalized = (n <= 1 && n >= 0) ? n : (n / 100);
+
+    // Incoming sources can send either:
+    // - normalized volume (0..1), usually fractional (e.g. 0.42)
+    // - percent volume (0..100), usually integer (e.g. 42)
+    // Treat integer 0..100 as percent so "1" means 1%, not 100%.
+    const isIntegerPercent = Number.isInteger(n) && n >= 0 && n <= 100;
+    const normalized = isIntegerPercent ? (n / 100) : ((n <= 1 && n >= 0) ? n : (n / 100));
     engine.controlValues.volume = clamp(normalized, 0, 1);
     return true;
 }

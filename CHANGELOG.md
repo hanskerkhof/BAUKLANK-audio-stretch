@@ -4,6 +4,9 @@ All notable changes to this project should be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Corrected incoming `volume` value interpretation in `app/multi/app.mjs` so integer `0..100` values are treated as percent. This fixes the edge case where value `1` was interpreted as 100% instead of 1%.
+
 ## [2026-03-24]
 
 ### Added
