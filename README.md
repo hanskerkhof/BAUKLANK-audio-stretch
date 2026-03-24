@@ -8,7 +8,8 @@ For Debian 13 kiosk machines (OptiPlex flow), use:
 Core flow:
 
 ```bash
-mkdir -p /home/pi/Public
+sudo apt update
+sudo apt install -y git
 cd /home/pi/Public
 git clone git@github.com:hanskerkhof/BAUKLANK-audio-stretch.git
 sudo /home/pi/Public/BAUKLANK-audio-stretch/deploy/debian/provision_debian_kiosk.sh

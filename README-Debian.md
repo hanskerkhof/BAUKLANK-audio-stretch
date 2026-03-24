@@ -17,12 +17,13 @@ In Debian installer:
 - Partitioning: Guided, entire disk, all files in one partition
 - Software selection: `XFCE`, `SSH server`, `standard system utilities`
 
-## 2) First machine bootstrap
+## 2) First machine bootstrap (exact order)
 
 On the Debian machine:
 
 ```bash
-mkdir -p /home/pi/Public
+sudo apt update
+sudo apt install -y git
 cd /home/pi/Public
 git clone git@github.com:hanskerkhof/BAUKLANK-audio-stretch.git
 sudo /home/pi/Public/BAUKLANK-audio-stretch/deploy/debian/provision_debian_kiosk.sh
