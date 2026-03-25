@@ -13,8 +13,10 @@ const DEFAULT_AUDIO_BY_ENGINE = {
     B: 'Black Hole Sun - Soundgarden.mp3',
 };
 
-const CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000;
-const CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000;
+const CHANNEL_A_AUDIO_START_INPUT_OFFSET_MIN_MS = 0;
+const CHANNEL_A_AUDIO_START_INPUT_OFFSET_MAX_MS = 1 * 60 * 1000;
+const CHANNEL_B_AUDIO_START_INPUT_OFFSET_MIN_MS = (1 * 60 * 1000) + (53 * 1000);
+const CHANNEL_B_AUDIO_START_INPUT_OFFSET_MAX_MS = (2 * 60 * 1000) + (23 * 1000);
 const VOLUME_RAMP_MIN_MS = 120;
 const VOLUME_RAMP_MAX_MS = 240;
 const RATE_RAMP_MIN_MS = 160;
@@ -23,9 +25,16 @@ const RATE_MIN = 0.01;
 const RATE_MAX = 2;
 const UI_RATE_OVERRIDE_MS = 1500;
 
-function getRandomChannelAudioStartInputOffsetMs() {
-    const minMs = Math.max(0, Math.min(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
-    const maxMs = Math.max(minMs, Math.max(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
+function getRandomChannelAudioStartInputOffsetMs(engineId) {
+    const requested = String(engineId || '').toUpperCase();
+    const minMsRaw = (requested === 'B')
+        ? CHANNEL_B_AUDIO_START_INPUT_OFFSET_MIN_MS
+        : CHANNEL_A_AUDIO_START_INPUT_OFFSET_MIN_MS;
+    const maxMsRaw = (requested === 'B')
+        ? CHANNEL_B_AUDIO_START_INPUT_OFFSET_MAX_MS
+        : CHANNEL_A_AUDIO_START_INPUT_OFFSET_MAX_MS;
+    const minMs = Math.max(0, Math.min(minMsRaw, maxMsRaw));
+    const maxMs = Math.max(minMs, Math.max(minMsRaw, maxMsRaw));
     return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
 }
 
@@ -364,7 +373,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
             rate: false
         },
         applyControlsChanged: null,
-        startupInputOffsetMs: getRandomChannelAudioStartInputOffsetMs(),
+        startupInputOffsetMs: getRandomChannelAudioStartInputOffsetMs(engineId),
         startupInputOffsetPending: true
     };
 }
@@ -484,18 +493,65 @@ function updateControllerStatus(engine, msg) {
 // Filename / status UI helpers (IMPORTANT FIX)
 // ------------------------------------------------------------
 
-// Only paints the UI text. Does NOT touch engine.currentFileName.
-function setFilenameText(engine, text) {
+function ensureFilenameLines(engine) {
     const el = engine.ui.filename;
-    if (!el) return;
-    el.textContent = text;
+    if (!el) return null;
+
+    let timeEl = el.querySelector('.channel-time');
+    let fileEl = el.querySelector('.channel-file');
+    if (!timeEl || !fileEl) {
+        el.textContent = '';
+        timeEl = document.createElement('div');
+        fileEl = document.createElement('div');
+        timeEl.className = 'channel-time';
+        fileEl.className = 'channel-file';
+        el.appendChild(timeEl);
+        el.appendChild(fileEl);
+    }
+    return {timeEl, fileEl};
+}
+
+function setFilenameText(engine, timeText, fileText = null) {
+    const lines = ensureFilenameLines(engine);
+    if (!lines) return;
+    lines.timeEl.textContent = timeText;
+    lines.fileEl.textContent = (fileText !== null)
+        ? fileText
+        : (engine.currentFileName || 'no audio loaded');
+}
+
+function formatHms(seconds) {
+    const clamped = Math.max(0, Math.floor(toFiniteNumber(seconds, 0)));
+    const hh = Math.floor(clamped / 3600);
+    const mm = Math.floor((clamped % 3600) / 60);
+    const ss = clamped % 60;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+function updateTimeDisplay(engine, currentSeconds = null) {
+    if (!engine || !engine.ui || !engine.ui.filename) return;
+    if (engine._processing) {
+        setFilenameText(engine, 'processing audio…');
+        return;
+    }
+
+    const total = Math.max(0, toFiniteNumber(engine.audioDuration, 0));
+    const currentFromStretch = (engine.stretch && Number.isFinite(engine.stretch.inputTime)) ? engine.stretch.inputTime : null;
+    const currentFromPlayback = (engine.ui.playback && Number.isFinite(toFiniteNumber(engine.ui.playback.value, NaN)))
+        ? toFiniteNumber(engine.ui.playback.value, 0)
+        : 0;
+    const resolvedCurrent = (currentSeconds !== null && Number.isFinite(currentSeconds))
+        ? currentSeconds
+        : (currentFromStretch !== null ? currentFromStretch : currentFromPlayback);
+    const current = clamp(resolvedCurrent, 0, total || 0);
+    setFilenameText(engine, `${formatHms(current)} / ${formatHms(total)}`);
 }
 
 // Sets the loaded filename AND paints it.
 function setLoadedFilename(engine, name) {
     const safe = (typeof name === 'string' && name.length) ? name : 'no audio loaded';
     engine.currentFileName = safe;
-    setFilenameText(engine, safe);
+    updateTimeDisplay(engine, 0);
 }
 
 function showProcessing(engine, label = 'processing audio…') {
@@ -505,7 +561,7 @@ function showProcessing(engine, label = 'processing audio…') {
 
 function hideProcessing(engine) {
     engine._processing = false;
-    setFilenameText(engine, engine.currentFileName || 'audio loaded');
+    updateTimeDisplay(engine, 0);
 }
 
 // ------------------------------------------------------------
@@ -867,7 +923,7 @@ function hideProcessing(engine) {
 
         }
 
-        // Initial filename paint (placeholder only, doesn't matter)
+        // Initial time paint in channel-filename slot.
         setLoadedFilename(engine, engine.currentFileName || 'no audio loaded');
 
         // Reset buttons
@@ -1028,6 +1084,7 @@ function hideProcessing(engine) {
 
             const v = clamp(toFiniteNumber(engine.ui.playback.value, 0), 0, engine.audioDuration);
             controlsChanged(engine, /*scheduleAhead=*/true, {input: v});
+            updateTimeDisplay(engine, v);
         };
 
         const PLAYBACK_UI_HZ = 5; // 5Hz instead of 20Hz
@@ -1043,6 +1100,7 @@ function hideProcessing(engine) {
             if (!playbackHeld && engine.stretch && engine.controlValues.active) {
                 engine.ui.playback.value = engine.stretch.inputTime;
             }
+            updateTimeDisplay(engine);
         }, PLAYBACK_UI_MS);
 
         // // keep playback slider updated

@@ -140,6 +140,17 @@ body[data-app="multi"] {
     word-break: break-word;
 }
 
+.channel-filename .channel-time {
+    color: rgba(0, 0, 0, 0.72);
+    font-weight: 600;
+}
+
+.channel-filename .channel-file {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
 @media (max-height: 600px) {
     .channel-filename {
         font-size: 12px;

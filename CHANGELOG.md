@@ -16,6 +16,12 @@ All notable changes to this project should be documented in this file.
 - Deferred numeric `volumePercent` and `rate` edits until commit (`Enter`/`blur`) and added focused-input locks so incoming controller updates do not animate/overwrite those fields while typing.
 - Set initial/default `rate` to `0.01` and set static rate input defaults in `app/multi/index.html` to `0.01` so startup UI and runtime defaults match.
 - Normalized rate UI rendering to `0.001` precision to avoid padded values like `0.0100` while animating.
+- Replaced channel filename text with a live playback time display in `hh:mm:ss / hh:mm:ss` format (current input position / total track duration) in the same UI location.
+- Extended the channel info area to two lines: time on the first line (`hh:mm:ss / hh:mm:ss`) and the current filename directly below it.
+- Made startup input-position offsets channel-specific:
+  - Channel A random start range: `0:00` to `1:00`
+  - Channel B random start range: `1:53` to `2:23`
+  Offsets are still applied once at startup only.
 
 ### Changed
 - Added randomized one-time startup input-position offsets in `app/multi/app.mjs`:
@@ -66,7 +72,7 @@ All notable changes to this project should be documented in this file.
 - Removed bundled `PT Sans` font-face usage from `app/multi/dist.css` and switched those selectors to system sans fallbacks to eliminate repeated `fonts/pt-sans...` 404 requests.
 
 ### Versioning
-- Bumped frontend version in `version.json` to `2.15.14`.
+- Bumped frontend version in `version.json` to `2.15.17`.
 
 ## [2026-03-24]
 
