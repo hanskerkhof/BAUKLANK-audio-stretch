@@ -15,8 +15,13 @@ const DEFAULT_AUDIO_BY_ENGINE = {
 
 const CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000;
 const CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000;
-const VOLUME_RAMP_MIN_MS = 25;
-const VOLUME_RAMP_MAX_MS = 80;
+const VOLUME_RAMP_MIN_MS = 120;
+const VOLUME_RAMP_MAX_MS = 240;
+const RATE_RAMP_MIN_MS = 160;
+const RATE_RAMP_MAX_MS = 280;
+const RATE_MIN = 0.01;
+const RATE_MAX = 2;
+const UI_RATE_OVERRIDE_MS = 1500;
 
 function getRandomChannelAudioStartInputOffsetMs() {
     const minMs = Math.max(0, Math.min(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
@@ -94,6 +99,132 @@ function setVolumeNormalized(engine, value) {
     return true;
 }
 
+function setVolumeUiImmediate(engine, pct) {
+    if (!engine || !engine.ui || !engine.ui.controlsRoot) return;
+    const v = String(Math.round(clamp(toFiniteNumber(pct, 0), 0, 100)));
+    engine.ui.controlsRoot.querySelectorAll('input[data-key="volumePercent"]').forEach(input => {
+        if (document.activeElement === input && input.type === 'number') return;
+        if (input.type !== 'checkbox') input.value = v;
+    });
+}
+
+function cancelVolumeUiAnimation(engine) {
+    if (!engine) return;
+    if (engine.uiVolumeAnimFrame !== null) {
+        cancelAnimationFrame(engine.uiVolumeAnimFrame);
+        engine.uiVolumeAnimFrame = null;
+    }
+    engine.uiVolumeAnimTargetPct = null;
+}
+
+function animateVolumeUi(engine, targetPct, durationMs) {
+    if (!engine || !engine.ui || !engine.ui.controlsRoot) return;
+
+    const target = clamp(toFiniteNumber(targetPct, 0), 0, 100);
+    const ms = Math.max(0, toFiniteNumber(durationMs, 0));
+
+    if (engine.uiVolumeAnimFrame !== null && engine.uiVolumeAnimTargetPct === target) {
+        return;
+    }
+
+    let startPct = target;
+    const sampleInput = engine.ui.controlsRoot.querySelector('input[data-key="volumePercent"]');
+    if (sampleInput) {
+        startPct = clamp(toFiniteNumber(sampleInput.value, target), 0, 100);
+    }
+
+    if (!Number.isFinite(startPct) || ms <= 0 || Math.abs(startPct - target) < 0.001) {
+        cancelVolumeUiAnimation(engine);
+        setVolumeUiImmediate(engine, target);
+        return;
+    }
+
+    cancelVolumeUiAnimation(engine);
+    engine.uiVolumeAnimTargetPct = target;
+
+    const startedAt = performance.now();
+    const tick = (now) => {
+        const p = clamp((now - startedAt) / ms, 0, 1);
+        const value = startPct + (target - startPct) * p;
+        setVolumeUiImmediate(engine, value);
+        if (p < 1) {
+            engine.uiVolumeAnimFrame = requestAnimationFrame(tick);
+        } else {
+            engine.uiVolumeAnimFrame = null;
+            engine.uiVolumeAnimTargetPct = null;
+        }
+    };
+
+    engine.uiVolumeAnimFrame = requestAnimationFrame(tick);
+}
+
+function setRateUiImmediate(engine, rateValue) {
+    if (!engine || !engine.ui || !engine.ui.controlsRoot) return;
+    const clampedRate = clamp(toFiniteNumber(rateValue, RATE_MIN), RATE_MIN, RATE_MAX);
+    const v = String(Number((Math.round(clampedRate * 1000) / 1000).toFixed(3)));
+    engine.ui.controlsRoot.querySelectorAll('input[data-key="rate"]').forEach(input => {
+        if (document.activeElement === input && input.type === 'number') return;
+        if (input.type !== 'checkbox') input.value = v;
+    });
+}
+
+function isUiEditLocked(engine, key) {
+    return !!(engine && engine.uiEditLocks && engine.uiEditLocks[key]);
+}
+
+function cancelRateAnimation(engine) {
+    if (!engine) return;
+    if (engine.uiRateAnimFrame !== null) {
+        cancelAnimationFrame(engine.uiRateAnimFrame);
+        engine.uiRateAnimFrame = null;
+    }
+    engine.uiRateAnimTarget = null;
+}
+
+function setRateWithAdaptiveRamp(engine, targetRate, scheduleAhead = true) {
+    if (!engine) return;
+    const current = clamp(toFiniteNumber(engine.controlValues.rate, RATE_MIN), RATE_MIN, RATE_MAX);
+    const target = clamp(toFiniteNumber(targetRate, current), RATE_MIN, RATE_MAX);
+    const deltaNorm = clamp(Math.abs(target - current) / (RATE_MAX - RATE_MIN), 0, 1);
+    const rampMs = clamp(
+        RATE_RAMP_MIN_MS + deltaNorm * (RATE_RAMP_MAX_MS - RATE_RAMP_MIN_MS),
+        RATE_RAMP_MIN_MS,
+        RATE_RAMP_MAX_MS
+    );
+
+    if (Math.abs(target - current) < 0.000001) {
+        cancelRateAnimation(engine);
+        engine.controlValues.rate = target;
+        setRateUiImmediate(engine, target);
+        if (typeof engine.applyControlsChanged === 'function') {
+            engine.applyControlsChanged(scheduleAhead);
+        }
+        return;
+    }
+
+    cancelRateAnimation(engine);
+    engine.uiRateAnimTarget = target;
+
+    const startedAt = performance.now();
+    const tick = (now) => {
+        const p = clamp((now - startedAt) / rampMs, 0, 1);
+        const value = current + (target - current) * p;
+        engine.controlValues.rate = value;
+        setRateUiImmediate(engine, value);
+        if (typeof engine.applyControlsChanged === 'function') {
+            engine.applyControlsChanged(scheduleAhead);
+        }
+        if (p < 1) {
+            engine.uiRateAnimFrame = requestAnimationFrame(tick);
+        } else {
+            engine.uiRateAnimFrame = null;
+            engine.uiRateAnimTarget = null;
+        }
+    };
+
+    engine.uiRateAnimFrame = requestAnimationFrame(tick);
+}
+
 // ------------------------------------------------------------
 // LocalStorage helpers (scoped per engine)
 // ------------------------------------------------------------
@@ -140,7 +271,7 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
         // pan in [-1..1], applied via L/R gains into ChannelMerger
         active: true,
 
-        rate: 0.001,
+        rate: RATE_MIN,
         semitones: 0,
         tonalityHz: 16000,
         formantSemitones: 0,
@@ -222,6 +353,17 @@ function createEngine(audioContext, mixNode, engineId, outputIndex) {
         // ui state
         currentFileName: '',
         lastUiPaintMs: 0,
+        uiVolumeAnimFrame: null,
+        uiVolumeAnimTargetPct: null,
+        uiRateAnimFrame: null,
+        uiRateAnimTarget: null,
+        rangeInteraction: null,
+        uiRateOverrideUntilMs: 0,
+        uiEditLocks: {
+            volumePercent: false,
+            rate: false
+        },
+        applyControlsChanged: null,
         startupInputOffsetMs: getRandomChannelAudioStartInputOffsetMs(),
         startupInputOffsetPending: true
     };
@@ -491,6 +633,8 @@ function hideProcessing(engine) {
         engine.gain.gain.cancelScheduledValues(t);
         engine.gain.gain.setValueAtTime(currentGainValue, t);
         engine.gain.gain.linearRampToValueAtTime(targetVol, t + rampSec);
+        const volumePct = Math.round(targetVol * 100);
+        animateVolumeUi(engine, volumePct, rampMs);
 
         // Update pan (into L/R gains)
         const pan = clamp(toFiniteNumber(engine.controlValues.pan, 0), -1, 1);
@@ -522,7 +666,7 @@ function hideProcessing(engine) {
         }
 
         // Apply scheduling params (rate/pitch/etc.)
-        const rate = clamp(toFiniteNumber(engine.controlValues.rate, 0.001), 0.00001, 2);
+        const rate = clamp(toFiniteNumber(engine.controlValues.rate, 0.001), RATE_MIN, RATE_MAX);
         const semitones = clamp(toFiniteNumber(engine.controlValues.semitones, 0), -48, 48);
         const tonalityHz = clamp(toFiniteNumber(engine.controlValues.tonalityHz, 16000), 20, 22050);
         const formantSemitones = clamp(toFiniteNumber(engine.controlValues.formantSemitones, 0), -48, 48);
@@ -571,10 +715,11 @@ function hideProcessing(engine) {
                     if (!key) return;
 
                     if (key === 'volumePercent') {
-                        const v = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
-                        const pct = Math.round(v * 100);
-                        if (input.type === 'checkbox') return;
-                        input.value = String(pct);
+                        // Volume UI is animated separately above for every update.
+                        return;
+                    }
+
+                    if ((key === 'rate' || key === 'volumePercent') && document.activeElement === input) {
                         return;
                     }
 
@@ -592,12 +737,23 @@ function hideProcessing(engine) {
         if (!engine || !key) return;
 
         if (key === 'volume') {
+            if (isUiEditLocked(engine, 'volumePercent')) return;
             if (!setVolumeNormalized(engine, value)) return;
             controlsChanged(engine, /*scheduleAhead=*/true);
             return;
         }
 
+        if (key === 'rate') {
+            if (isUiEditLocked(engine, 'rate')) return;
+            if (performance.now() < toFiniteNumber(engine.uiRateOverrideUntilMs, 0)) return;
+            const n = toFiniteNumber(value, NaN);
+            if (!Number.isFinite(n)) return;
+            setRateWithAdaptiveRamp(engine, n, /*scheduleAhead=*/true);
+            return;
+        }
+
         if (key === 'volumePercent') {
+            if (isUiEditLocked(engine, 'volumePercent')) return;
             setVolumeFromPercent(engine, value, 100);
             controlsChanged(engine, /*scheduleAhead=*/true);
             return;
@@ -669,6 +825,7 @@ function hideProcessing(engine) {
     // Wire up UI per engine panel
     // ------------------------------------------------------------
     function wireEngineUi(engine) {
+        engine.applyControlsChanged = (scheduleAhead) => controlsChanged(engine, scheduleAhead);
         engine.ui.playstop = $(`#playstop-${engine.id}`);
         engine.ui.playback = $(`#playback-${engine.id}`);
         engine.ui.upload = $(`#upload-${engine.id}`);
@@ -679,6 +836,36 @@ function hideProcessing(engine) {
         if (!engine.ui.controlsRoot) return;
         engine.ui.controllerStatus = $(`#controller-status-${engine.id}`);
         engine.ui.filename = $(`#filename-${engine.id}`);
+
+        function beginRangeInteraction(key) {
+            if (key === 'volumePercent') {
+                engine.rangeInteraction = {
+                    key,
+                    start: Math.round(clamp(toFiniteNumber(engine.controlValues.volume, 0), 0, 1) * 100),
+                    target: Math.round(clamp(toFiniteNumber(engine.controlValues.volume, 0), 0, 1) * 100),
+                    inputCount: 0
+                };
+                return;
+            }
+            engine.rangeInteraction = null;
+        }
+
+        function finishRangeInteraction() {
+            const interaction = engine.rangeInteraction;
+            if (!interaction) return;
+            engine.rangeInteraction = null;
+
+            // Single input event = likely click-on-track jump.
+            if (interaction.inputCount > 1) return;
+
+            if (interaction.key === 'volumePercent') {
+                setVolumeUiImmediate(engine, interaction.start);
+                setVolumeFromPercent(engine, interaction.target, 100);
+                controlsChanged(engine, /*scheduleAhead=*/true);
+                return;
+            }
+
+        }
 
         // Initial filename paint (placeholder only, doesn't matter)
         setLoadedFilename(engine, engine.currentFileName || 'no audio loaded');
@@ -696,8 +883,13 @@ function hideProcessing(engine) {
                 }
 
                 if (key in engine.controlValues) {
-                    engine.controlValues[key] = engine.controlDefaults[key];
-                    controlsChanged(engine);
+                    if (key === 'rate') {
+                        engine.uiRateOverrideUntilMs = performance.now() + UI_RATE_OVERRIDE_MS;
+                        setRateWithAdaptiveRamp(engine, engine.controlDefaults[key], /*scheduleAhead=*/true);
+                    } else {
+                        engine.controlValues[key] = engine.controlDefaults[key];
+                        controlsChanged(engine);
+                    }
                 } else if (key in engine.configValues) {
                     engine.configValues[key] = engine.configDefaults[key];
                     configChanged(engine);
@@ -710,13 +902,36 @@ function hideProcessing(engine) {
             const isCheckbox = input.type === 'checkbox';
             const key = input.dataset.key;
 
-            input.oninput = input.onchange = () => {
+            if (input.type === 'range' && key === 'volumePercent') {
+                input.addEventListener('pointerdown', () => beginRangeInteraction(key));
+                input.addEventListener('pointerup', () => finishRangeInteraction());
+                input.addEventListener('pointercancel', () => finishRangeInteraction());
+                input.addEventListener('blur', () => finishRangeInteraction());
+            }
+            if (key === 'rate') {
+                input.addEventListener('pointerdown', () => {
+                    engine.uiRateOverrideUntilMs = performance.now() + UI_RATE_OVERRIDE_MS;
+                });
+            }
+
+            const handleControlInput = () => {
                 const value = isCheckbox ? input.checked : parseFloat(input.value);
                 if (!isCheckbox && !Number.isFinite(value)) return;
 
                 if (key === 'volumePercent') {
+                    if (input.type === 'range' && engine.rangeInteraction && engine.rangeInteraction.key === 'volumePercent') {
+                        engine.rangeInteraction.inputCount += 1;
+                        engine.rangeInteraction.target = clamp(toFiniteNumber(value, 0), 0, 100);
+                        if (engine.rangeInteraction.inputCount <= 1) return;
+                    }
                     setVolumeFromPercent(engine, value, 100);
                     controlsChanged(engine);
+                    return;
+                }
+
+                if (key === 'rate') {
+                    engine.uiRateOverrideUntilMs = performance.now() + UI_RATE_OVERRIDE_MS;
+                    setRateWithAdaptiveRamp(engine, value, /*scheduleAhead=*/true);
                     return;
                 }
 
@@ -729,11 +944,39 @@ function hideProcessing(engine) {
                 }
             };
 
+            const isDeferredNumberCommit = input.type === 'number' && (key === 'rate' || key === 'volumePercent');
+            if (isDeferredNumberCommit) {
+                // While editing numeric fields, defer all updates until Enter/blur commit.
+                input.oninput = null;
+                input.onchange = null;
+                input.addEventListener('focus', () => {
+                    engine.uiEditLocks[key] = true;
+                });
+                input.addEventListener('blur', () => {
+                    engine.uiEditLocks[key] = false;
+                    handleControlInput();
+                });
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        input.blur();
+                    }
+                });
+            } else {
+                input.oninput = handleControlInput;
+                input.onchange = (input.type === 'range') ? null : handleControlInput;
+            }
+
             if (!isCheckbox) {
                 input.ondblclick = () => {
                     if (key in engine.controlValues) {
-                        engine.controlValues[key] = engine.controlDefaults[key];
-                        controlsChanged(engine);
+                        if (key === 'rate') {
+                            engine.uiRateOverrideUntilMs = performance.now() + UI_RATE_OVERRIDE_MS;
+                            setRateWithAdaptiveRamp(engine, engine.controlDefaults[key], /*scheduleAhead=*/true);
+                        } else {
+                            engine.controlValues[key] = engine.controlDefaults[key];
+                            controlsChanged(engine);
+                        }
                     } else if (key in engine.configValues) {
                         engine.configValues[key] = engine.configDefaults[key];
                         configChanged(engine);
