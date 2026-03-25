@@ -38,6 +38,7 @@ readonly ENGINE_SLOT="${BAUKLANK_ENGINE_SLOT:-A}"
 readonly APP_URL="${BAUKLANK_APP_URL:-http://127.0.0.1:8080/index.html?engines=1&slot=A}"
 readonly CHROMIUM_PROFILE_DIR="${BAUKLANK_CHROMIUM_PROFILE_DIR:-$HOME/.config/chromium-kiosk}"
 readonly CHROMIUM_DISABLE_GPU="${BAUKLANK_CHROMIUM_DISABLE_GPU:-0}"
+readonly PREFERRED_SINK_PORT="${BAUKLANK_PREFERRED_SINK_PORT:-analog-output-headphones}"
 readonly CLICK_TO_START="${BAUKLANK_CLICK_TO_START:-0}"
 readonly CLICK_X="${BAUKLANK_CLICK_X:-30}"
 readonly CLICK_Y="${BAUKLANK_CLICK_Y:-30}"
@@ -134,6 +135,50 @@ PY
   return 1
 }
 
+wait_for_default_sink() {
+  local timeout_sec="$1"
+  local deadline=$((SECONDS + timeout_sec))
+
+  while (( SECONDS < deadline )); do
+    local sink=""
+    sink="$(pactl info 2>/dev/null | sed -n 's/^Default Sink: //p' || true)"
+    if [[ -n "$sink" ]]; then
+      printf '%s' "$sink"
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  return 1
+}
+
+enforce_audio_route() {
+  if ! has_cmd pactl; then
+    log "WARN: pactl not found; skipping audio route enforcement"
+    return 0
+  fi
+
+  local default_sink=""
+  default_sink="$(wait_for_default_sink 10 || true)"
+  if [[ -z "$default_sink" ]]; then
+    log "WARN: Pulse default sink unavailable; skipping audio route enforcement"
+    return 0
+  fi
+
+  log "Enforcing audio sink settings on '$default_sink' (port=$PREFERRED_SINK_PORT)"
+  pactl set-sink-port "$default_sink" "$PREFERRED_SINK_PORT" || true
+  pactl set-sink-mute "$default_sink" 0 || true
+  pactl set-sink-volume "$default_sink" 90% || true
+
+  # Re-apply once shortly after startup to survive late jack/profile churn.
+  (
+    sleep 2
+    pactl set-sink-port "$default_sink" "$PREFERRED_SINK_PORT" || true
+    pactl set-sink-mute "$default_sink" 0 || true
+    pactl set-sink-volume "$default_sink" 90% || true
+  ) >/dev/null 2>&1 &
+}
+
 maybe_click_play() {
   [[ "$CLICK_TO_START" == "1" ]] || return 0
 
@@ -187,6 +232,9 @@ setsid python3 -m http.server "$WEB_PORT" --directory "$WEB_ROOT" &
 http_pid="$!"
 
 wait_for_http "$APP_URL" 30 || fail "Web app did not become reachable at $APP_URL"
+
+# ------- Enforce sink port/mute/volume -------
+enforce_audio_route
 
 # ------- Start BAUKLANK bridge -------
 log "Starting server-multi.py (engine-count=$ENGINE_COUNT, slot=$ENGINE_SLOT)"

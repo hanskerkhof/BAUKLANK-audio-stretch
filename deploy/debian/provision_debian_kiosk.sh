@@ -13,7 +13,7 @@ set -euo pipefail
 # 5) Ensure repo exists at /home/pi/Public/BAUKLANK-audio-stretch
 # 6) Configure LightDM autologin for pi
 # 7) Install + enable BAUKLANK user service
-# 8) Set onboard audio output to unmuted default
+# 8) Harden audio routing/power defaults for unattended playback
 #
 # Run:
 #   sudo ./deploy/debian/provision_debian_kiosk.sh
@@ -60,7 +60,7 @@ require_debian() {
 }
 
 apt_install_packages() {
-  log "Step 1/9: Install required Debian packages"
+  log "Step 1/11: Install required Debian packages"
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y \
@@ -80,12 +80,12 @@ apt_install_packages() {
 }
 
 ensure_groups() {
-  log "Step 2/9: Ensure '$PI_USER' is in required groups"
+  log "Step 2/11: Ensure '$PI_USER' is in required groups"
   usermod -aG sudo,audio,video,input,dialout "$PI_USER"
 }
 
 configure_locale() {
-  log "Step 3/9: Configure system locale and SSH locale handling"
+  log "Step 3/11: Configure system locale and SSH locale handling"
 
   sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
   grep -q '^en_US.UTF-8 UTF-8' /etc/locale.gen || echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
@@ -103,7 +103,7 @@ configure_locale() {
 }
 
 configure_passwordless_sudo() {
-  log "Step 4/10: Configure passwordless sudo for '$PI_USER'"
+  log "Step 4/11: Configure passwordless sudo for '$PI_USER'"
   cat >/etc/sudoers.d/90-pi-nopasswd <<'EOF'
 pi ALL=(ALL) NOPASSWD:ALL
 EOF
@@ -111,7 +111,7 @@ EOF
 }
 
 configure_audio_defaults() {
-  log "Step 5/10: Set audio defaults to 90% and unmuted (ALSA + Pulse)"
+  log "Step 5/11: Set audio defaults to 90% and unmuted (ALSA + Pulse)"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local local_bin_dir="$PI_HOME/.local/bin"
@@ -123,11 +123,15 @@ configure_audio_defaults() {
 
   # PulseAudio default sink at session startup
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$local_bin_dir"
-  cat >"$pulse_script" <<'EOF'
+cat >"$pulse_script" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-pactl set-sink-mute @DEFAULT_SINK@ 0 || true
-pactl set-sink-volume @DEFAULT_SINK@ 90% || true
+DEFAULT_SINK="$(pactl info 2>/dev/null | sed -n 's/^Default Sink: //p' || true)"
+if [[ -n "$DEFAULT_SINK" ]]; then
+  pactl set-sink-port "$DEFAULT_SINK" analog-output-headphones || true
+  pactl set-sink-mute "$DEFAULT_SINK" 0 || true
+  pactl set-sink-volume "$DEFAULT_SINK" 90% || true
+fi
 EOF
   chown "$PI_USER:$PI_USER" "$pulse_script"
   chmod 755 "$pulse_script"
@@ -149,8 +153,33 @@ EOF
   runuser -u "$PI_USER" -- env XDG_RUNTIME_DIR="/run/user/$pi_uid" "$pulse_script" || true
 }
 
+configure_audio_stability() {
+  log "Step 6/11: Disable HDA power-save and Pulse idle suspend"
+
+  install -d -m 0755 /etc/modprobe.d
+  cat >/etc/modprobe.d/99-bauklank-audio.conf <<'EOF'
+options snd_hda_intel power_save=0 power_save_controller=N
+EOF
+
+  if [[ -w /sys/module/snd_hda_intel/parameters/power_save ]]; then
+    echo 0 >/sys/module/snd_hda_intel/parameters/power_save || true
+  fi
+  if [[ -w /sys/module/snd_hda_intel/parameters/power_save_controller ]]; then
+    echo N >/sys/module/snd_hda_intel/parameters/power_save_controller || true
+  fi
+
+  install -d -m 0755 /etc/pulse/default.pa.d
+  cat >/etc/pulse/default.pa.d/50-bauklank-disable-idle-suspend.pa <<'EOF'
+### BAUKLANK kiosk reliability: do not suspend sink on idle.
+unload-module module-suspend-on-idle
+EOF
+
+  runuser -u "$PI_USER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$PI_USER")" \
+    pactl unload-module module-suspend-on-idle >/dev/null 2>&1 || true
+}
+
 disable_screen_blanking() {
-  log "Step 6/10: Disable screen blanking and screen locking"
+  log "Step 7/11: Disable screen blanking and screen locking"
   local autostart_dir="$PI_HOME/.config/autostart"
 
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$autostart_dir"
@@ -187,7 +216,7 @@ EOF
 }
 
 ensure_repo() {
-  log "Step 7/10: Ensure BAUKLANK repo is present"
+  log "Step 8/11: Ensure BAUKLANK repo is present"
   install -d -m 0755 -o "$PI_USER" -g "$PI_USER" "$PI_HOME/Public"
 
   if [[ -d "$REPO_DIR/.git" ]]; then
@@ -216,7 +245,7 @@ ensure_repo() {
 }
 
 configure_lightdm_autologin() {
-  log "Step 8/10: Configure LightDM autologin for '$PI_USER'"
+  log "Step 9/11: Configure LightDM autologin for '$PI_USER'"
   install -d -m 0755 /etc/lightdm/lightdm.conf.d
   cat >/etc/lightdm/lightdm.conf.d/50-bauklank-autologin.conf <<EOF
 [Seat:*]
@@ -228,7 +257,7 @@ EOF
 }
 
 install_user_service() {
-  log "Step 9/10: Install BAUKLANK systemd user service"
+  log "Step 10/11: Install BAUKLANK systemd user service"
   local pi_uid
   pi_uid="$(id -u "$PI_USER")"
   local user_service_dir="$PI_HOME/.config/systemd/user"
@@ -254,7 +283,7 @@ install_user_service() {
 }
 
 print_summary() {
-  log "Step 10/10: Done"
+  log "Step 11/11: Done"
   cat <<EOF
 
 Provisioning complete.
@@ -266,6 +295,7 @@ Configured:
 - LightDM autologin: enabled
 - Locale: en_US.UTF-8 (SSH LC_* warnings fixed)
 - Audio: ALSA Master + Pulse sink set to 90% and unmuted
+- Audio stability: HDA power-save disabled; Pulse idle suspend disabled
 - Screen blanking/locking: disabled for XFCE kiosk user
 
 Next:
@@ -284,6 +314,7 @@ main() {
   configure_locale
   configure_passwordless_sudo
   configure_audio_defaults
+  configure_audio_stability
   disable_screen_blanking
   ensure_repo
   configure_lightdm_autologin
