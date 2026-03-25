@@ -19,6 +19,7 @@ All notable changes to this project should be documented in this file.
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000`
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000`
   Each engine now starts playback from a one-time random position offset in that range at boot, without delaying playback start or overriding later scrub/runtime updates.
+- Updated volume transition behavior in `app/multi/app.mjs` to use an adaptive ramp for all volume changes (controller + UI): `25ms` for small deltas up to `80ms` for large jumps.
 - `launch_on_debian.sh` now supports `BAUKLANK_CHROMIUM_WINDOW_MODE` to choose Chromium startup mode per machine:
   - `kiosk` (existing behavior)
   - `app` / `fullscreen-app` (fullscreen app window)

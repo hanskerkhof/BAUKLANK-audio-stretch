@@ -15,6 +15,8 @@ const DEFAULT_AUDIO_BY_ENGINE = {
 
 const CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000;
 const CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000;
+const VOLUME_RAMP_MIN_MS = 25;
+const VOLUME_RAMP_MAX_MS = 80;
 
 function getRandomChannelAudioStartInputOffsetMs() {
     const minMs = Math.max(0, Math.min(CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS, CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS));
@@ -478,9 +480,17 @@ function hideProcessing(engine) {
         // Update gain
         const targetVol = clamp(toFiniteNumber(engine.controlValues.volume, 1), 0, 1);
         const t = audioContext.currentTime;
+        const currentGainValue = clamp(toFiniteNumber(engine.gain.gain.value, targetVol), 0, 1);
+        const delta = Math.abs(targetVol - currentGainValue);
+        const rampMs = clamp(
+            VOLUME_RAMP_MIN_MS + delta * (VOLUME_RAMP_MAX_MS - VOLUME_RAMP_MIN_MS),
+            VOLUME_RAMP_MIN_MS,
+            VOLUME_RAMP_MAX_MS
+        );
+        const rampSec = rampMs / 1000;
         engine.gain.gain.cancelScheduledValues(t);
-        engine.gain.gain.setValueAtTime(engine.gain.gain.value, t);
-        engine.gain.gain.linearRampToValueAtTime(targetVol, t + 0.03);
+        engine.gain.gain.setValueAtTime(currentGainValue, t);
+        engine.gain.gain.linearRampToValueAtTime(targetVol, t + rampSec);
 
         // Update pan (into L/R gains)
         const pan = clamp(toFiniteNumber(engine.controlValues.pan, 0), -1, 1);
