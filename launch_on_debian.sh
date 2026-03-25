@@ -37,6 +37,7 @@ readonly ENGINE_COUNT="${BAUKLANK_ENGINE_COUNT:-1}"
 readonly ENGINE_SLOT="${BAUKLANK_ENGINE_SLOT:-A}"
 readonly APP_URL="${BAUKLANK_APP_URL:-http://127.0.0.1:8080/index.html?engines=1&slot=A}"
 readonly CHROMIUM_PROFILE_DIR="${BAUKLANK_CHROMIUM_PROFILE_DIR:-$HOME/.config/chromium-kiosk}"
+readonly CHROMIUM_WINDOW_MODE="${BAUKLANK_CHROMIUM_WINDOW_MODE:-kiosk}"
 readonly CHROMIUM_DISABLE_GPU="${BAUKLANK_CHROMIUM_DISABLE_GPU:-0}"
 readonly PREFERRED_SINK_PORT="${BAUKLANK_PREFERRED_SINK_PORT:-analog-output-headphones}"
 readonly KEEP_DISPLAY_AWAKE_INTERVAL_SEC="${BAUKLANK_KEEP_DISPLAY_AWAKE_INTERVAL_SEC:-5}"
@@ -257,6 +258,7 @@ log "BAUKLANK launcher starting"
 log "Repo dir: $SCRIPT_DIR"
 log "App URL:  $APP_URL"
 log "DISPLAY:  $DISPLAY"
+log "Chromium window mode: $CHROMIUM_WINDOW_MODE"
 
 mkdir -p "$CHROMIUM_PROFILE_DIR"
 
@@ -284,9 +286,8 @@ bridge_pid="$!"
 # Small stabilization delay before browser launch
 sleep 0.5
 
-# ------- Start Chromium kiosk -------
+# ------- Start Chromium -------
 chromium_flags=(
-  --kiosk
   --password-store=basic
   --user-data-dir="$CHROMIUM_PROFILE_DIR"
   --no-first-run
@@ -295,13 +296,33 @@ chromium_flags=(
   --disable-session-crashed-bubble
 )
 
+chromium_target="$APP_URL"
+case "$CHROMIUM_WINDOW_MODE" in
+  kiosk)
+    chromium_flags+=(--kiosk)
+    log "Starting Chromium kiosk"
+    ;;
+  app|fullscreen-app)
+    chromium_flags+=(--start-fullscreen "--app=$APP_URL")
+    chromium_target=""
+    log "Starting Chromium app window (fullscreen)"
+    ;;
+  window|normal)
+    chromium_flags+=(--new-window)
+    log "Starting Chromium window mode"
+    ;;
+  *)
+    log "WARN: Unknown BAUKLANK_CHROMIUM_WINDOW_MODE='$CHROMIUM_WINDOW_MODE'; falling back to kiosk"
+    chromium_flags+=(--kiosk)
+    ;;
+esac
+
 if [[ "$CHROMIUM_DISABLE_GPU" == "1" ]]; then
   chromium_flags+=(--disable-gpu)
   log "Chromium GPU disabled (BAUKLANK_CHROMIUM_DISABLE_GPU=1)"
 fi
 
-log "Starting Chromium kiosk"
-setsid "$chromium_bin" "${chromium_flags[@]}" "$APP_URL" &
+setsid "$chromium_bin" "${chromium_flags[@]}" ${chromium_target:+"$chromium_target"} &
 chrome_pid="$!"
 
 # ------- Keep display awake (no blank / no DPMS) -------

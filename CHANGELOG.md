@@ -16,6 +16,10 @@ All notable changes to this project should be documented in this file.
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000`
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000`
   Each engine now starts playback from a one-time random position offset in that range at boot, without delaying playback start or overriding later scrub/runtime updates.
+- `launch_on_debian.sh` now supports `BAUKLANK_CHROMIUM_WINDOW_MODE` to choose Chromium startup mode per machine:
+  - `kiosk` (existing behavior)
+  - `app` / `fullscreen-app` (fullscreen app window)
+  - `window` / `normal` (regular browser window)
 - Updated `README.md` with a dedicated Debian **Kiosk Update (Pull Latest Main)** copy/paste command block to standardize kiosk syncs that discard unintended local edits before fast-forward pulling `origin/main`.
 - Debian kiosk audio hardening:
   - `launch_on_debian.sh` now enforces sink port (`analog-output-headphones` by default), unmute, and volume at startup.
@@ -40,6 +44,7 @@ All notable changes to this project should be documented in this file.
   - deleted `README-pi-file-system-brief.md`
   - replaced `README.md` content with current Debian kiosk + macOS dev workflows
   - updated `README-signalsmith.md` wording to generic kiosk hardware terminology
+- Removed bundled `PT Sans` font-face usage from `app/multi/dist.css` and switched those selectors to system sans fallbacks to eliminate repeated `fonts/pt-sans...` 404 requests.
 
 ## [2026-03-24]
 
