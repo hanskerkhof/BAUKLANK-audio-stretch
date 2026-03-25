@@ -33,7 +33,7 @@ GitHub
 
 Practical advice
 
-Raspberry Pi / AudioWorklet / kiosk web UI: keep it true (more stable).
+Kiosk AudioWorklet web UI: keep it true (more stable).
 
 If you’re chasing minimum latency and your CPU is strong + you’re not getting crackles: try false and see if it stays clean.
 
@@ -72,12 +72,12 @@ So:
 
 This is classic **overlap-add / STFT-style processing**: you window audio into blocks and recombine them; overlap determines how densely those windows cover time. ([signalsmith-audio.co.uk][2])
 
-### Rule of thumb for your setup (Pi + touchscreen + realtime)
+### Rule of thumb for your setup (touchscreen + realtime)
 
 * If you hear **crackles / CPU stress** → decrease overlap a bit (e.g. 1.5 → 1.25 → 1.0)
 * If you hear **graininess / rough modulation** and CPU is fine → increase overlap (e.g. 1.5 → 2.0)
 
-If you tell me your Pi model (3/4/5) and whether you’re running in Chromium kiosk, I can suggest a tighter “safe” range for `blockMs` + `overlap` as a pair.
+If you share your kiosk hardware profile and whether you’re running in Chromium kiosk, I can suggest a tighter “safe” range for `blockMs` + `overlap` as a pair.
 
 [1]: https://signalsmith-audio.co.uk/code/stretch/demo/?utm_source=chatgpt.com "Signalsmith Stretch Web Audio demo"
 [2]: https://signalsmith-audio.co.uk/writing/2023/stretch-design/?utm_source=chatgpt.com "The Design of Signalsmith Stretch"

@@ -39,6 +39,7 @@ readonly APP_URL="${BAUKLANK_APP_URL:-http://127.0.0.1:8080/index.html?engines=1
 readonly CHROMIUM_PROFILE_DIR="${BAUKLANK_CHROMIUM_PROFILE_DIR:-$HOME/.config/chromium-kiosk}"
 readonly CHROMIUM_DISABLE_GPU="${BAUKLANK_CHROMIUM_DISABLE_GPU:-0}"
 readonly PREFERRED_SINK_PORT="${BAUKLANK_PREFERRED_SINK_PORT:-analog-output-headphones}"
+readonly KEEP_DISPLAY_AWAKE_INTERVAL_SEC="${BAUKLANK_KEEP_DISPLAY_AWAKE_INTERVAL_SEC:-5}"
 readonly CLICK_TO_START="${BAUKLANK_CLICK_TO_START:-0}"
 readonly CLICK_X="${BAUKLANK_CLICK_X:-30}"
 readonly CLICK_Y="${BAUKLANK_CLICK_Y:-30}"
@@ -48,6 +49,7 @@ readonly XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 http_pid=""
 bridge_pid=""
 chrome_pid=""
+display_keepalive_pid=""
 
 log() {
   printf '[%s] %s\n' "$(date +'%F %T')" "$*"
@@ -83,6 +85,7 @@ kill_process_group() {
 
 cleanup() {
   log "Cleanup starting"
+  kill_process_group "$display_keepalive_pid" "display-keepalive"
   kill_process_group "$chrome_pid" "Chromium"
   kill_process_group "$bridge_pid" "server-multi.py"
   kill_process_group "$http_pid" "http.server"
@@ -179,6 +182,37 @@ enforce_audio_route() {
   ) >/dev/null 2>&1 &
 }
 
+enforce_display_awake_once() {
+  if ! has_cmd xset; then
+    log "WARN: xset not found; cannot enforce no-blank/no-dpms"
+    return 0
+  fi
+
+  env DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" xset -dpms >/dev/null 2>&1 || true
+  env DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" xset s off >/dev/null 2>&1 || true
+  env DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" xset s noblank >/dev/null 2>&1 || true
+}
+
+start_display_keepalive() {
+  if ! has_cmd xset; then
+    return 0
+  fi
+
+  (
+    # Immediate pass plus one delayed pass for late session overrides.
+    enforce_display_awake_once
+    sleep 2
+    enforce_display_awake_once
+
+    while true; do
+      sleep "$KEEP_DISPLAY_AWAKE_INTERVAL_SEC"
+      enforce_display_awake_once
+    done
+  ) &
+  display_keepalive_pid="$!"
+  log "Display keepalive started (interval=${KEEP_DISPLAY_AWAKE_INTERVAL_SEC}s)"
+}
+
 maybe_click_play() {
   [[ "$CLICK_TO_START" == "1" ]] || return 0
 
@@ -269,6 +303,9 @@ fi
 log "Starting Chromium kiosk"
 setsid "$chromium_bin" "${chromium_flags[@]}" "$APP_URL" &
 chrome_pid="$!"
+
+# ------- Keep display awake (no blank / no DPMS) -------
+start_display_keepalive
 
 # Optional, only if explicitly enabled
 maybe_click_play

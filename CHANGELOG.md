@@ -4,6 +4,10 @@ All notable changes to this project should be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added `launch_on_mac.sh` to run local macOS development stack end-to-end (static web app + `server-multi.py` + browser open) with clean shutdown on Ctrl+C.
+- `launch_on_mac.sh` now supports `--kiosk` to launch browser in kiosk mode only when requested.
+
 ### Fixed
 - Corrected incoming `volume` value interpretation in `app/multi/app.mjs` so integer `0..100` values are treated as percent. This fixes the edge case where value `1` was interpreted as 100% instead of 1%.
 
@@ -15,6 +19,26 @@ All notable changes to this project should be documented in this file.
 - Debian kiosk audio hardening:
   - `launch_on_debian.sh` now enforces sink port (`analog-output-headphones` by default), unmute, and volume at startup.
   - `deploy/debian/provision_debian_kiosk.sh` now disables HDA power save and Pulse `module-suspend-on-idle`, and updates the audio defaults helper to force headphone sink port.
+- Debian display hardening for installations:
+  - `launch_on_debian.sh` now runs a display keepalive (`xset s off -dpms s noblank`) at startup and periodically.
+  - `deploy/debian/provision_debian_kiosk.sh` now writes `/etc/X11/xorg.conf.d/10-bauklank-no-dpms.conf` to force no blanking/DPMS at Xorg level.
+- Removed outdated `npx http-server` launch references from `README.md` and aligned examples on `python3 -m http.server`.
+
+### Removed
+- Deleted legacy/backup files that are no longer part of the active runtime flow:
+  - `_OLD__kiosk_and_click.sh`
+  - `server-multi-for-2-controllers_OLD.py`
+  - `server-multi_v2.14.1.py`
+  - `server-multi_v2.15.0.py`
+  - `server-multi_v2.15.1.py`
+  - `server-multi_v2.15.2.py`
+  - `mac_cliclick.sh`
+- Removed obsolete Raspberry Pi–specific runtime/docs references:
+  - deleted `launch_on_pi.sh`
+  - deleted `README-pi-file-system.md`
+  - deleted `README-pi-file-system-brief.md`
+  - replaced `README.md` content with current Debian kiosk + macOS dev workflows
+  - updated `README-signalsmith.md` wording to generic kiosk hardware terminology
 
 ## [2026-03-24]
 

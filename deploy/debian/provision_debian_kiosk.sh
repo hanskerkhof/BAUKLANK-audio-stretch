@@ -213,6 +213,17 @@ EOF
     runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/inactivity-on-ac -n -t int -s 0 || true
     runuser -u "$PI_USER" -- xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/inactivity-on-battery -n -t int -s 0 || true
   fi
+
+  # Xorg fallback policy: force no blanking/DPMS even if desktop settings drift.
+  install -d -m 0755 /etc/X11/xorg.conf.d
+  cat >/etc/X11/xorg.conf.d/10-bauklank-no-dpms.conf <<'EOF'
+Section "ServerFlags"
+    Option "BlankTime" "0"
+    Option "StandbyTime" "0"
+    Option "SuspendTime" "0"
+    Option "OffTime" "0"
+EndSection
+EOF
 }
 
 ensure_repo() {
