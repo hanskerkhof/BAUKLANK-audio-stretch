@@ -11,6 +11,7 @@ All notable changes to this project should be documented in this file.
 ### Fixed
 - Corrected incoming `volume` value interpretation in `app/multi/app.mjs` so integer `0..100` values are treated as percent. This fixes the edge case where value `1` was interpreted as 100% instead of 1%.
 - Changed web app startup default channel volume from `10%` to `0%` so playback starts silent until controller values are received.
+- Updated static `volumePercent` input defaults in `app/multi/index.html` from `35` to `0` (both channels) to prevent a brief pre-init UI flash at `35` before JS applies runtime values.
 
 ### Changed
 - Added randomized one-time startup input-position offsets in `app/multi/app.mjs`:
