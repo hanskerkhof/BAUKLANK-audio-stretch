@@ -16,6 +16,7 @@ All notable changes to this project should be documented in this file.
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MIN_MS = 60 * 1000`
   - `CHANNEL_AUDIO_START_INPUT_OFFSET_MAX_MS = 3 * 60 * 1000`
   Each engine now starts playback from a one-time random position offset in that range at boot, without delaying playback start or overriding later scrub/runtime updates.
+- Updated `README.md` with a dedicated Debian **Kiosk Update (Pull Latest Main)** copy/paste command block to standardize kiosk syncs that discard unintended local edits before fast-forward pulling `origin/main`.
 - Debian kiosk audio hardening:
   - `launch_on_debian.sh` now enforces sink port (`analog-output-headphones` by default), unmute, and volume at startup.
   - `deploy/debian/provision_debian_kiosk.sh` now disables HDA power save and Pulse `module-suspend-on-idle`, and updates the audio defaults helper to force headphone sink port.

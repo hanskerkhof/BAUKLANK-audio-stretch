@@ -66,6 +66,18 @@ Restart after updates:
 systemctl --user restart bauklank-kiosk.service
 ```
 
+### Kiosk Update (Pull Latest Main)
+
+For kiosk machines that should strictly follow `main` and never keep local edits:
+
+```bash
+cd /home/pi/Public/BAUKLANK-audio-stretch
+git status
+git checkout -- deploy/debian/provision_debian_kiosk.sh launch_on_debian.sh
+git pull --ff-only origin main
+git log -1 --oneline
+```
+
 ### Runtime Scripts
 
 - Debian kiosk runtime launcher: `launch_on_debian.sh`
